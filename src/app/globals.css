@@ -1,0 +1,80 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 225 48% 6%;
+    --foreground: 0 0% 100%;
+    --card: 225 48% 9%;
+    --card-foreground: 0 0% 100%;
+    --popover: 225 48% 8%;
+    --popover-foreground: 0 0% 100%;
+    --primary: 328 100% 59%; /* Magenta */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 190 100% 50%; /* Electric Blue */
+    --secondary-foreground: 225 48% 6%;
+    --accent: 25 100% 55%; /* Burnt Orange */
+    --accent-foreground: 0 0% 100%;
+    --muted: 225 30% 15%;
+    --muted-foreground: 225 10% 70%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 225 30% 20%;
+    --input: 225 30% 18%;
+    --ring: 190 100% 50%;
+    --radius: 0.75rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground selection:bg-primary/30;
+    background-image: radial-gradient(circle at 50% 50%, hsla(225, 48%, 15%, 0.3) 0%, hsla(225, 48%, 6%, 1) 100%);
+  }
+}
+
+@layer components {
+  .neon-border {
+    position: relative;
+    border: 1px solid transparent;
+    background: linear-gradient(var(--card), var(--card)) padding-box,
+                linear-gradient(45deg, #FF2E9F, #00D4FF, #FF7A18) border-box;
+  }
+
+  .neon-pulse {
+    animation: neon-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  .glass-panel {
+    @apply bg-card/60 backdrop-blur-xl border border-white/5 shadow-2xl;
+  }
+}
+
+@keyframes neon-pulse {
+  0%, 100% { opacity: 1; filter: drop-shadow(0 0 5px #FF2E9F); }
+  50% { opacity: 0.8; filter: drop-shadow(0 0 15px #00D4FF); }
+}
+
+@keyframes border-flow {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.animate-border-flow {
+  background-size: 200% 200%;
+  animation: border-flow 4s linear infinite;
+}
+
+/* Remove all grey placeholder text colors */
+::placeholder {
+  @apply text-foreground/50 italic !important;
+}
+
+input, textarea {
+  @apply text-foreground !important;
+}

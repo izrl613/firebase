@@ -1,0 +1,22 @@
+# **App Name**: Architect AI
+
+## Core Features:
+
+- AI-Powered Digital Sovereignty Agent: A Gemini-powered conversational AI tool that provides context-aware security Q&A, real-time risk scoring, and generates actionable plans for users to 'Nuke' exposed digital elements or 'Knox' secure ones, acting as a real-time live security AI agent.
+- Federated Passkey Authentication: Secure user login using Google/Apple accounts, coupled with universal WebAuthn passkey enrollment tied to mobile devices for streamlined and robust authentication. This also allows users to save additional email addresses to their profile, backed up by their chosen federated account.
+- Onboarding & Identity Data Input Splash Screen: After successful federated login, a smooth, easy-to-use splash screen guides the user to initially input data across all 16 identity vector modules, compiling this information directly into their profile.
+- 16 Digital Identity Vector Modules: Interactive modules presented in a left navigation bar with grouped menus (e.g., Email Breach & Metadata Scanner, Social Media Footprint, Device File Scan, Mobile/Laptop Security, Deep Web Monitoring, Data Broker Removal) allowing users to add, edit, or delete data, each displaying a unique SHA256 key corresponding to the entered data for integrity verification.
+- Real-time DIFF Analysis & Monitoring: Continuously scans and analyzes a user's federated digital identity data across emails, social media, mobile devices, and computers against global privacy standards (like ERCA/ECRA 2026) and threat intelligence via an Architect AI-centric database (powered by Gemini AI), updating their NUKED/KNOXED exposure status in real-time.
+- Secure Administrator Portal: A passkey-secured admin portal, exclusively accessible by specified administrators (idin@agape.nyc or agape@sovereign.nyc), providing comprehensive backend security and privacy statistics, WebAuthn logs, Firebase usage, and audit trails without exposing raw infrastructure details.
+- Sovereign Identity Audit PDF Generator: Generates a detailed, Lighthouse-style PDF report summarizing the user's 'Sovereign Score', all NUKED/KNOXED items, actionable recommendations, and unique SHA256 hashes for each identity module for verification. A final edit splash screen allows review before compilation, and the report is downloadable by the user and stored in their profile for two years.
+- Encrypted User Data & SHA256 Integrity: All user-inputted personal data is cryptographically secured within Firestore, ensuring it is inaccessible to Google or the application administrator (Israel David). Each piece of data within the 16 modules is verified by a unique SHA256 key, ensuring data integrity and non-tampering.
+
+## Style Guidelines:
+
+- Background Color: Dark Blue (#0B1020), providing a calm, secure, and futuristic canvas.
+- Accent Colors: Vibrant Magenta (#FF2E9F), Electric Blue (#00D4FF), and Burnt Orange (#FF7A18) are used as a mixed neon hue for striking gradients, thin line borders that wrap around buttons and the edge of the application, and pulsing effects throughout the design.
+- Headline Font: 'Space Grotesk' for a contemporary, clear, and impactful feel, with no gray placeholder fonts used anywhere in the application.
+- Body Font: 'JetBrains Mono' for all body text, ensuring high clarity and readability, especially for data displays within modules, with no gray placeholder fonts.
+- Use simple, modern, and outlined iconography across all modules and navigation to maintain a clean, high-clarity dashboard aesthetic consistent with BitDefender and contemporary privacy app designs, reflecting a secure and futuristic feel.
+- Implement glassmorphism panels for modular content display, emphasizing a deep, layered, and fluid UI that ensures clear data segmentation and visual sophistication. The overall layout blends Google and BitDefender design elements, inspired by Firefox Monitor, SayMine, Jumbo, and Optery for intuitive privacy management.
+- Subtle, fluid transitions and soft glow neon gradients will be incorporated throughout the application to enhance the futuristic user experience, making interactions feel smooth and responsive, especially when navigating between the 16 identity modules or during data input splash screens.
