@@ -22,7 +22,7 @@
     "dotenv": "^17.2.3",
     "esbuild": "^0.28.0",
     "express": "^4.21.2",
-    "firebase": "^11.1.0",
+    "firebase": "^11.10.0",
     "framer-motion": "^12.35.1",
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.7",
