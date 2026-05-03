@@ -2,6 +2,7 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { db } from "../firebase";
 import { collection, addDoc, query, where, getDocs, deleteDoc, doc, updateDoc, serverTimestamp } from "firebase/firestore";
 import { handleFirestoreError, OperationType } from "../utils/firestoreErrorHandler";
+import { logScanStarted, logUserEvent, logExposureNuked } from "./analyticsService";
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
@@ -23,6 +24,9 @@ export const startFullScan = async (userId: string, email: string, onProgress?: 
   ];
   const total = modules.length;
   const findings: ScanFinding[] = [];
+  
+  // Log scan start to Analytics
+  logScanStarted('FULL_SCAN');
 
   if (onProgress) onProgress(0, total, "Initializing...", "Clearing previous scan cache...");
 
@@ -134,10 +138,20 @@ export const startFullScan = async (userId: string, email: string, onProgress?: 
     handleFirestoreError(err, OperationType.UPDATE, `users/${userId}`);
   }
 
+  // Log scan completion
+  logUserEvent('scan_completed', { 
+    scan_type: 'FULL_SCAN', 
+    score, 
+    nuked_count: findings.filter(f => f.status === 'NUKED').length 
+  });
+
   return { findings, score };
 };
 
 export const startModuleScan = async (userId: string, email: string, module: string, onProgress?: (current: number, total: number, moduleName?: string, subTask?: string) => void) => {
+  // Log module scan start
+  logScanStarted(`MODULE_${module.toUpperCase()}`);
+  
   if (onProgress) onProgress(0, 1, module, "Initializing targeted scan...");
   
   // Handle emergency bypass user with local storage
@@ -212,6 +226,13 @@ export const startModuleScan = async (userId: string, email: string, module: str
     await recalculateSovereignScore(userId);
     
     if (onProgress) onProgress(1, 1, module, "Scan complete.");
+    
+    // Log module scan completion
+    logUserEvent('scan_completed', { 
+      scan_type: `MODULE_${module.toUpperCase()}`, 
+      finding_status: newFinding.status 
+    });
+
     return newFinding;
   } catch (err) {
     handleFirestoreError(err, OperationType.CREATE, 'diff_scans');
@@ -366,15 +387,31 @@ export const updateFindingStatus = async (findingId: string, status: 'NUKED' | '
     const localFindings = JSON.parse(localStorage.getItem(`scan_findings_${userId}`) || "[]");
     const index = localFindings.findIndex((f: any) => f.id === findingId);
     if (index !== -1) {
+      const oldStatus = localFindings[index].status;
       localFindings[index].status = status;
       localStorage.setItem(`scan_findings_${userId}`, JSON.stringify(localFindings));
+      
+      // Log remediation if status changed to KNOXED
+      if (oldStatus === 'NUKED' && status === 'KNOXED') {
+        logExposureNuked(localFindings[index].module, findingId);
+      }
       return true;
     }
     return false;
   }
 
   try {
-    await updateDoc(doc(db, "diff_scans", findingId), { status });
+    const findingRef = doc(db, "diff_scans", findingId);
+    const findingSnap = await getDocs(query(collection(db, "diff_scans"), where("__name__", "==", findingId))); // Minimal read to get module
+    const findingData = findingSnap.docs[0]?.data();
+    
+    await updateDoc(findingRef, { status });
+    
+    // Log remediation
+    if (findingData && findingData.status === 'NUKED' && status === 'KNOXED') {
+      logExposureNuked(findingData.module, findingId);
+    }
+    
     return true;
   } catch (err) {
     handleFirestoreError(err, OperationType.UPDATE, `diff_scans/${findingId}`);

@@ -1,10 +1,10 @@
 {
   "projectId": "agape-sovereign",
-  "appId": "1:168284124297:web:378beeb26a09f909cf8258",
-  "apiKey": "AIzaSyAwAFv2nNDlpFex7uPoVf_seJEPWzN-U4U",
+  "appId": "1:956088455461:web:5d83545efc8961e4904acc",
+  "apiKey": "AIzaSyAKooAY5zYjxsCrcSAXjm--a77GQ2E4u9g",
   "authDomain": "agape-sovereign.firebaseapp.com",
-  "firestoreDatabaseId": "(default)",
+  "databaseURL": "https://agape-sovereign-default-rtdb.firebaseio.com",
   "storageBucket": "agape-sovereign.firebasestorage.app",
-  "messagingSenderId": "168284124297",
-  "measurementId": ""
+  "messagingSenderId": "956088455461",
+  "measurementId": "G-6YG9BGTWDD"
 }

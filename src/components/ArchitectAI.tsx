@@ -17,6 +17,8 @@ import { doc, getDoc, setDoc, updateDoc, addDoc, serverTimestamp, collection, qu
 import { handleFirestoreError, OperationType } from '../utils/firestoreErrorHandler';
 
 import { updateFindingStatus, recalculateSovereignScore, ScanFinding, generateSuspiciousReport } from '../services/scanService';
+import { logAIChatMessage, logUserEvent } from '../services/analyticsService';
+import { getFeatureFlag } from '../services/remoteConfigService';
 
 interface Message {
   id: string;
@@ -84,9 +86,15 @@ What aspect of your digital sovereignty would you like to reclaim today?`,
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedModule, setSelectedModule] = useState<string | null>(null);
   const [selectedSeverity, setSelectedSeverity] = useState<'ALL' | 'Critical' | 'High' | 'Medium' | 'Low'>('ALL');
+  const [isDarkWebScanEnabled, setIsDarkWebScanEnabled] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const chatInputRef = useRef<HTMLInputElement>(null);
+
+  // Initialize feature flags
+  useEffect(() => {
+    setIsDarkWebScanEnabled(getFeatureFlag('enable_dark_web_scan'));
+  }, []);
 
   // Load scan history
   useEffect(() => {
@@ -626,6 +634,9 @@ What aspect of your digital sovereignty would you like to reclaim today?`,
     setAttachment(null);
     setIsLoading(true);
 
+    // Log message to Analytics
+    logAIChatMessage(messageText.length);
+
     try {
       const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
       
@@ -794,6 +805,12 @@ Recalculate and surface the Sovereign Score after every module action or user-su
 2. Contextualize with active scans — reference specific items from the user's NUKED/KNOXED status.
 3. Prioritize the 'NUKED' state — address critical exposures first.`
         }
+      });
+
+      // Log response generation
+      logUserEvent('ai_response_generated', { 
+        nuked_findings: stats.nuked,
+        sovereign_score: sovereignScore
       });
 
       const modelMessageId = (Date.now() + 1).toString();

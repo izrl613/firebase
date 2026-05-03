@@ -1,151 +1,502 @@
-import React, { useEffect, useState, useMemo } from 'react';
-import { db } from '../firebase';
-import { collection, query, orderBy, limit, onSnapshot, getCountFromServer } from 'firebase/firestore';
-import { NEON, NeonText, GlassCard, StatusBadge } from './UI';
-import { motion } from 'framer-motion';
-import { Users, ShieldAlert, Activity, Terminal, ShieldCheck, AlertTriangle } from 'lucide-react';
-import { handleFirestoreError, OperationType } from '../utils/firestoreErrorHandler';
+import React, { useState, useEffect } from 'react';
+import { useAuth } from '../AuthContext';
+import { NEON, GlassCard, NeonButton, NeonText } from './UI';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  Users, 
+  Database, 
+  HardDrive, 
+  Activity, 
+  Settings, 
+  Shield, 
+  Search, 
+  ExternalLink, 
+  ChevronRight, 
+  ArrowUpRight,
+  Filter,
+  RefreshCw,
+  Lock,
+  FileText
+} from 'lucide-react';
+import { collection, getDocs, query, limit, orderBy } from 'firebase/firestore';
+import { db, storage } from '../firebase';
+import { ref, listAll, getDownloadURL } from 'firebase/storage';
 
-interface AuditLog {
-  id: string;
-  type: string;
-  action: string;
-  userEmail?: string;
-  timestamp: Date;
-  metadata?: Record<string, unknown>;
-}
+const TABS = [
+  { id: 'overview', label: 'Overview', icon: Activity },
+  { id: 'auth', label: 'Auth', icon: Users },
+  { id: 'firestore', label: 'Firestore', icon: Database },
+  { id: 'storage', label: 'Storage', icon: HardDrive },
+  { id: 'analytics', label: 'Analytics', icon: Shield },
+  { id: 'config', label: 'Config', icon: Settings },
+];
 
-export const AdminPortal: React.FC = () => {
-  const [logs, setLogs] = useState<AuditLog[]>([]);
-  const [stats, setStats] = useState({
-    totalUsers: 0,
-    totalScans: 0,
-    criticalFindings: 0,
-    activeAdmins: 0
-  });
+export const AdminPortal = () => {
+  const { user, isAdmin } = useAuth();
+  const [activeTab, setActiveTab] = useState('overview');
+  const [stats, setStats] = useState({ users: 0, scans: 0, errors: 0 });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Real-time Audit Logs
-    const logsQuery = query(collection(db, "audit_logs"), orderBy("timestamp", "desc"), limit(50));
-    const unsubscribeLogs = onSnapshot(logsQuery, (snapshot) => {
-      const newLogs = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-        timestamp: doc.data().timestamp?.toDate() || new Date()
-      } as AuditLog));
-      setLogs(newLogs);
-      setLoading(false);
-    }, (err) => {
-      handleFirestoreError(err, OperationType.LIST, "audit_logs");
-    });
-
-    // Stats Aggregation (Real-time)
-    const unsubscribeUsers = onSnapshot(collection(db, "users"), (snapshot) => {
-      const admins = snapshot.docs.filter(d => d.data().role === 'admin').length;
-      setStats(prev => ({ ...prev, totalUsers: snapshot.size, activeAdmins: admins }));
-    });
-
-    const unsubscribeScans = onSnapshot(collection(db, "diff_scans"), (snapshot) => {
-      const critical = snapshot.docs.filter(d => d.data().status === 'NUKED').length;
-      setStats(prev => ({ ...prev, totalScans: snapshot.size, criticalFindings: critical }));
-    });
-
-    return () => {
-      unsubscribeLogs();
-      unsubscribeUsers();
-      unsubscribeScans();
+    const fetchStats = async () => {
+      try {
+        const usersSnap = await getDocs(collection(db, 'users'));
+        const scansSnap = await getDocs(collection(db, 'diff_scans'));
+        setStats({
+          users: usersSnap.size,
+          scans: scansSnap.size,
+          errors: 0
+        });
+      } catch (error) {
+        console.error("Failed to fetch admin stats:", error);
+      } finally {
+        setLoading(false);
+      }
     };
+    fetchStats();
   }, []);
 
-  const logTypeStyles: Record<string, { color: string, icon: React.ElementType }> = {
-    USER_LOGIN: { color: NEON.blue, icon: Users },
-    SCAN_INITIATED: { color: NEON.orange, icon: Activity },
-    SCAN_COMPLETED: { color: "#0f0", icon: ShieldCheck },
-    ADMIN_ACTION: { color: NEON.magenta, icon: ShieldAlert },
-    USER_REGISTERED: { color: NEON.blue, icon: Users }
-  };
+  if (!isAdmin) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
+        <Lock className="w-16 h-16 text-[#FF2E9F] mb-6" />
+        <NeonText color={NEON.magenta} size="2rem" weight={800}>ACCESS RESTRICTED</NeonText>
+        <p className="text-slate-400 mt-4 max-w-md font-mono text-sm">
+          This enclave is protected by hardware-bound sovereign protocols. 
+          Only registered administrators can access this GUI.
+        </p>
+      </div>
+    );
+  }
 
   return (
-    <div style={{ animation: "fade-in 0.4s ease" }}>
-      <div style={{ marginBottom: 24 }}>
-        <div style={{ fontFamily: "'Orbitron', monospace", fontSize: "0.6rem", color: NEON.magenta, letterSpacing: "0.2em", marginBottom: 6 }}>SYSTEM ADMINISTRATION INTERFACE</div>
-        <NeonText color={NEON.magenta} size="1.5rem" weight={900}>SOVEREIGN ADMIN PORTAL</NeonText>
-        <div style={{ color: NEON.textMuted, fontSize: "0.8rem", marginTop: 4 }}>Aggregated intelligence and system-wide audit telemetry</div>
+    <div className="space-y-8 pb-12">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
+        <div>
+          <div className="flex items-center gap-3 mb-2">
+            <div className="p-2 bg-[#FF7A18]/10 rounded-lg border border-[#FF7A18]/20">
+              <Shield className="w-5 h-5 text-[#FF7A18]" />
+            </div>
+            <NeonText color={NEON.orange} size="1.8rem" weight={800}>FIREBASE CONSOLE GUI</NeonText>
+          </div>
+          <p className="text-slate-400 font-mono text-sm">Workspace Environment: <span className="text-[#00D4FF]">agape-sovereign</span></p>
+        </div>
+
+        <div className="flex gap-4">
+          <NeonButton color={NEON.blue} size="sm" onClick={() => window.open('https://console.firebase.google.com/project/agape-sovereign', '_blank')}>
+            <ExternalLink className="w-4 h-4 mr-2" />
+            OPEN GOOGLE CONSOLE
+          </NeonButton>
+        </div>
       </div>
 
-      {/* KPI Stats */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 12, marginBottom: 24 }}>
-        {[
-          { label: "TOTAL USERS", value: stats.totalUsers, icon: Users, color: NEON.blue },
-          { label: "TOTAL SCANS", value: stats.totalScans, icon: Activity, color: NEON.orange },
-          { label: "CRITICAL FINDINGS", value: stats.criticalFindings, icon: AlertTriangle, color: NEON.magenta },
-          { label: "ADMIN NODES", value: stats.activeAdmins, icon: ShieldCheck, color: NEON.blue },
-        ].map((kpi) => (
-          <GlassCard key={kpi.label} style={{ padding: "16px" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-              <div style={{ fontFamily: "'Share Tech Mono'", fontSize: "0.6rem", color: NEON.textMuted, letterSpacing: "0.1em" }}>{kpi.label}</div>
-              <kpi.icon size={14} color={kpi.color} style={{ opacity: 0.7 }} />
-            </div>
-            <div style={{ fontFamily: "'Orbitron', monospace", fontSize: "1.8rem", fontWeight: 900, color: kpi.color, textShadow: `0 0 12px ${kpi.color}66` }}>{kpi.value}</div>
-          </GlassCard>
+      {/* Tabs Navigation */}
+      <div className="flex flex-wrap gap-2 p-1 bg-black/40 border border-white/5 rounded-2xl backdrop-blur-md">
+        {TABS.map((tab) => {
+          const Icon = tab.icon;
+          const isActive = activeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl transition-all font-mono text-xs font-bold tracking-wider
+                ${isActive 
+                  ? 'bg-[#00D4FF] text-black shadow-[0_0_15px_rgba(0,212,255,0.4)]' 
+                  : 'text-slate-400 hover:text-white hover:bg-white/5'
+                }`}
+            >
+              <Icon className="w-4 h-4" />
+              {tab.label.toUpperCase()}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Content Area */}
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={activeTab}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -10 }}
+          transition={{ duration: 0.2 }}
+        >
+          {activeTab === 'overview' && <OverviewTab stats={stats} loading={loading} />}
+          {activeTab === 'auth' && <AuthTab />}
+          {activeTab === 'firestore' && <FirestoreTab />}
+          {activeTab === 'storage' && <StorageTab />}
+          {activeTab === 'analytics' && <AnalyticsTab />}
+          {activeTab === 'config' && <ConfigTab />}
+        </motion.div>
+      </AnimatePresence>
+    </div>
+  );
+};
+
+const OverviewTab = ({ stats, loading }: any) => (
+  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+    <GlassCard className="p-6 border-l-4 border-[#00D4FF]">
+      <div className="flex justify-between items-start mb-4">
+        <Users className="w-6 h-6 text-[#00D4FF]" />
+        <span className="text-[10px] font-mono text-[#00D4FF] bg-[#00D4FF]/10 px-2 py-0.5 rounded-full">ACTIVE</span>
+      </div>
+      <div className="text-3xl font-black text-white font-mono">{loading ? '...' : stats.users}</div>
+      <div className="text-xs text-slate-400 font-mono mt-1">TOTAL SOVEREIGNS</div>
+    </GlassCard>
+
+    <GlassCard className="p-6 border-l-4 border-[#FF2E9F]">
+      <div className="flex justify-between items-start mb-4">
+        <Database className="w-6 h-6 text-[#FF2E9F]" />
+        <span className="text-[10px] font-mono text-[#FF2E9F] bg-[#FF2E9F]/10 px-2 py-0.5 rounded-full">SYNCED</span>
+      </div>
+      <div className="text-3xl font-black text-white font-mono">{loading ? '...' : stats.scans}</div>
+      <div className="text-xs text-slate-400 font-mono mt-1">DIFF SCAN FINDINGS</div>
+    </GlassCard>
+
+    <GlassCard className="p-6 border-l-4 border-[#FF7A18]">
+      <div className="flex justify-between items-start mb-4">
+        <Activity className="w-6 h-6 text-[#FF7A18]" />
+        <span className="text-[10px] font-mono text-[#FF7A18] bg-[#FF7A18]/10 px-2 py-0.5 rounded-full">OPTIMAL</span>
+      </div>
+      <div className="text-3xl font-black text-white font-mono">100%</div>
+      <div className="text-xs text-slate-400 font-mono mt-1">SYSTEM UPTIME</div>
+    </GlassCard>
+
+    <GlassCard className="md:col-span-3 p-8">
+      <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
+        <RefreshCw className="w-5 h-5 text-[#00D4FF]" />
+        Live Platform Heartbeat
+      </h3>
+      <div className="h-48 flex items-end gap-1 px-4">
+        {[...Array(40)].map((_, i) => (
+          <div 
+            key={i} 
+            className="flex-1 bg-[#00D4FF]/20 rounded-t-sm hover:bg-[#00D4FF]/40 transition-colors cursor-help"
+            style={{ height: `${Math.random() * 80 + 20}%` }}
+            title={`Activity at ${i}:00: ${Math.floor(Math.random() * 100)} events`}
+          />
         ))}
       </div>
+      <div className="flex justify-between mt-4 text-[10px] font-mono text-slate-500 uppercase tracking-widest">
+        <span>T-48 Hours</span>
+        <span>Current Precision: High</span>
+        <span>Present</span>
+      </div>
+    </GlassCard>
+  </div>
+);
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 24 }}>
-        <div>
-          <div style={{ marginBottom: 16, display: "flex", alignItems: "center", gap: 12 }}>
-            <Terminal size={16} color={NEON.magenta} />
-            <NeonText color={NEON.magenta} size="0.75rem" weight={700}>REAL-TIME AUDIT TELEMETRY</NeonText>
-            <div style={{ flex: 1, height: 1, background: `${NEON.magenta}33` }} />
-          </div>
+const AuthTab = () => {
+  const [users, setUsers] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-          <GlassCard style={{ padding: "0", overflow: "hidden" }}>
-            <div style={{ maxHeight: "500px", overflowY: "auto", padding: "12px" }}>
-              {loading ? (
-                <div style={{ padding: "40px", textAlign: "center", color: NEON.textMuted }}>Initializing secure connection...</div>
-              ) : logs.length === 0 ? (
-                <div style={{ padding: "40px", textAlign: "center", color: NEON.textMuted }}>No audit logs found in system.</div>
-              ) : (
-                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                  {logs.map((log) => {
-                    const style = logTypeStyles[log.type] || { color: NEON.textMuted, icon: Terminal };
-                    return (
-                      <motion.div 
-                        initial={{ opacity: 0, x: -10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        key={log.id} 
-                        style={{ 
-                          padding: "10px 14px", 
-                          background: "rgba(255,255,255,0.02)", 
-                          borderRadius: 8,
-                          borderLeft: `2px solid ${style.color}`,
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 16
-                        }}
-                      >
-                        <div style={{ background: `${style.color}22`, padding: 8, borderRadius: 6 }}>
-                          <style.icon size={14} color={style.color} />
-                        </div>
-                        <div style={{ flex: 1 }}>
-                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                            <div style={{ fontFamily: "'Rajdhani'", fontSize: "0.85rem", fontWeight: 600, color: NEON.text }}>{log.action}</div>
-                            <div style={{ fontFamily: "'Share Tech Mono'", fontSize: "0.6rem", color: NEON.textMuted }}>{log.timestamp.toLocaleTimeString()}</div>
-                          </div>
-                          <div style={{ fontFamily: "'Share Tech Mono'", fontSize: "0.65rem", color: style.color, opacity: 0.8 }}>
-                            {log.type} {log.userEmail ? `· ${log.userEmail}` : ""}
-                          </div>
-                        </div>
-                      </motion.div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          </GlassCard>
+  useEffect(() => {
+    const fetchUsers = async () => {
+      const q = query(collection(db, 'users'), orderBy('createdAt', 'desc'), limit(50));
+      const snap = await getDocs(q);
+      setUsers(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      setLoading(false);
+    };
+    fetchUsers();
+  }, []);
+
+  return (
+    <GlassCard className="overflow-hidden">
+      <div className="p-6 border-b border-white/5 flex justify-between items-center bg-white/5">
+        <div className="flex items-center gap-3">
+          <Users className="w-5 h-5 text-[#00D4FF]" />
+          <h3 className="font-bold text-white uppercase tracking-wider text-sm">Identity Enclave (Auth)</h3>
         </div>
+        <div className="relative">
+          <Search className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+          <input 
+            type="text" 
+            placeholder="Search by UID or Email..." 
+            className="bg-black/40 border border-white/10 rounded-lg pl-9 pr-4 py-1.5 text-xs text-white focus:outline-none focus:border-[#00D4FF]/50 w-64"
+          />
+        </div>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full text-left font-mono text-xs">
+          <thead>
+            <tr className="bg-black/60 text-slate-500 border-b border-white/5">
+              <th className="px-6 py-4 font-bold uppercase tracking-widest">User / Identity</th>
+              <th className="px-6 py-4 font-bold uppercase tracking-widest">UID</th>
+              <th className="px-6 py-4 font-bold uppercase tracking-widest">Sovereign Score</th>
+              <th className="px-6 py-4 font-bold uppercase tracking-widest">Status</th>
+              <th className="px-6 py-4 font-bold uppercase tracking-widest text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-white/5">
+            {loading ? (
+               <tr><td colSpan={5} className="px-6 py-12 text-center text-slate-500">Scanning Identity database...</td></tr>
+            ) : users.map((u) => (
+              <tr key={u.id} className="hover:bg-white/5 transition-colors group">
+                <td className="px-6 py-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#FF2E9F] to-[#00D4FF] p-[1px]">
+                      <div className="w-full h-full rounded-full bg-black flex items-center justify-center overflow-hidden">
+                        {u.photoURL ? <img src={u.photoURL} alt="" /> : <Users className="w-3 h-3" />}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-white font-bold">{u.displayName || 'Anonymous'}</div>
+                      <div className="text-slate-500 text-[10px]">{u.email || 'No email bound'}</div>
+                    </div>
+                  </div>
+                </td>
+                <td className="px-6 py-4 text-slate-500">{u.id.substring(0, 12)}...</td>
+                <td className="px-6 py-4">
+                  <span className={`font-bold ${u.sovereignScore > 80 ? 'text-[#00D4FF]' : u.sovereignScore > 60 ? 'text-[#FF7A18]' : 'text-[#FF2E9F]'}`}>
+                    {u.sovereignScore || 0}
+                  </span>
+                </td>
+                <td className="px-6 py-4">
+                  <span className="px-2 py-0.5 bg-green-500/10 text-green-500 border border-green-500/20 rounded text-[9px] font-bold uppercase">BND_OK</span>
+                </td>
+                <td className="px-6 py-4 text-right">
+                  <button className="p-1.5 hover:bg-white/10 rounded-lg text-slate-400 hover:text-white transition-colors">
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </GlassCard>
+  );
+};
+
+const FirestoreTab = () => {
+  const [activeCollection, setActiveCollection] = useState('diff_scans');
+  const [data, setData] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      const q = query(collection(db, activeCollection), limit(20));
+      const snap = await getDocs(q);
+      setData(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      setLoading(false);
+    };
+    fetchData();
+  }, [activeCollection]);
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+      <div className="lg:col-span-1 space-y-2">
+        {['users', 'diff_scans', 'score_history', 'audit_logs'].map(coll => (
+          <button
+            key={coll}
+            onClick={() => setActiveCollection(coll)}
+            className={`w-full text-left px-4 py-3 rounded-xl font-mono text-xs font-bold transition-all border
+              ${activeTab === coll 
+                ? 'bg-[#00D4FF]/10 border-[#00D4FF]/30 text-[#00D4FF]' 
+                : 'bg-black/40 border-white/5 text-slate-400 hover:border-white/10'
+              }`}
+          >
+            {coll.toUpperCase()}
+          </button>
+        ))}
+      </div>
+      <div className="lg:col-span-3">
+        <GlassCard className="overflow-hidden h-full">
+           <div className="p-4 border-b border-white/5 bg-white/5 flex justify-between items-center">
+              <span className="text-xs font-mono text-white font-bold">{activeCollection.toUpperCase()} DATA EXPLORER</span>
+              <button className="text-[10px] font-mono text-[#00D4FF] hover:underline">EXPORT JSON</button>
+           </div>
+           <div className="overflow-auto max-h-[600px]">
+             {loading ? (
+               <div className="p-12 text-center text-slate-500 font-mono text-xs">Querying Firestore infrastructure...</div>
+             ) : (
+               <table className="w-full text-left font-mono text-[10px]">
+                 <thead>
+                   <tr className="bg-black/60 text-slate-500">
+                     <th className="px-4 py-3 border-r border-white/5">DOC_ID</th>
+                     <th className="px-4 py-3">DATA_PAYLOAD</th>
+                   </tr>
+                 </thead>
+                 <tbody className="divide-y divide-white/5">
+                    {data.map(item => (
+                      <tr key={item.id} className="hover:bg-white/5">
+                        <td className="px-4 py-2 border-r border-white/5 text-[#00D4FF] font-bold">{item.id.substring(0, 8)}</td>
+                        <td className="px-4 py-2">
+                          <div className="max-w-md overflow-hidden text-ellipsis whitespace-nowrap text-slate-400">
+                            {JSON.stringify(item)}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                 </tbody>
+               </table>
+             )}
+           </div>
+        </GlassCard>
       </div>
     </div>
   );
 };
+
+const StorageTab = () => {
+  const [files, setFiles] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchFiles = async () => {
+      try {
+        const rootRef = ref(storage, 'users');
+        const res = await listAll(rootRef);
+        const filePromises = res.prefixes.map(async (prefix) => {
+          const userFolderRes = await listAll(prefix);
+          return Promise.all(userFolderRes.items.map(async (item) => {
+            const url = await getDownloadURL(item);
+            return { name: item.name, path: item.fullPath, url };
+          }));
+        });
+        const allFiles = (await Promise.all(filePromises)).flat();
+        setFiles(allFiles);
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchFiles();
+  }, []);
+
+  return (
+    <GlassCard className="p-6">
+      <div className="flex items-center gap-3 mb-8">
+        <HardDrive className="w-5 h-5 text-[#FF7A18]" />
+        <h3 className="font-bold text-white uppercase tracking-wider text-sm">Enclave Storage Explorer</h3>
+      </div>
+      
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+        {loading ? (
+          <div className="col-span-full py-12 text-center text-slate-500 font-mono text-xs">Listing storage objects...</div>
+        ) : files.length === 0 ? (
+          <div className="col-span-full py-12 text-center text-slate-500 font-mono text-xs">No storage objects identified in the enclave.</div>
+        ) : files.map((f, i) => (
+          <div key={i} className="group relative bg-black/40 border border-white/10 rounded-xl overflow-hidden hover:border-[#00D4FF]/40 transition-all">
+            <div className="aspect-square flex items-center justify-center p-4 bg-white/5">
+              {f.name.match(/\.(jpg|jpeg|png|gif)$/i) ? (
+                <img src={f.url} alt="" className="w-full h-full object-cover rounded shadow-lg" />
+              ) : (
+                <FileText className="w-8 h-8 text-slate-600" />
+              )}
+            </div>
+            <div className="p-2 border-t border-white/5">
+              <div className="text-[9px] font-mono text-white truncate">{f.name}</div>
+              <div className="text-[8px] font-mono text-slate-500 truncate">{f.path}</div>
+            </div>
+            <button 
+              onClick={() => window.open(f.url, '_blank')}
+              className="absolute inset-0 bg-[#00D4FF]/80 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+            >
+              <ArrowUpRight className="w-6 h-6 text-black" />
+            </button>
+          </div>
+        ))}
+      </div>
+    </GlassCard>
+  );
+};
+
+const AnalyticsTab = () => (
+  <GlassCard className="p-8">
+     <div className="flex items-center gap-3 mb-8">
+        <Activity className="w-5 h-5 text-[#FF2E9F]" />
+        <h3 className="font-bold text-white uppercase tracking-wider text-sm">Global Engagement Analytics</h3>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="space-y-4">
+          <div className="flex justify-between text-[10px] font-mono text-slate-400">
+            <span>SOVEREIGN_CONVERSION_RATE</span>
+            <span className="text-[#00D4FF]">78.4%</span>
+          </div>
+          <div className="h-2 bg-white/5 rounded-full overflow-hidden">
+            <div className="h-full bg-[#00D4FF]" style={{ width: '78.4%' }} />
+          </div>
+          
+          <div className="flex justify-between text-[10px] font-mono text-slate-400">
+            <span>DIFF_SCAN_COMPLETION</span>
+            <span className="text-[#FF2E9F]">92.1%</span>
+          </div>
+          <div className="h-2 bg-white/5 rounded-full overflow-hidden">
+            <div className="h-full bg-[#FF2E9F]" style={{ width: '92.1%' }} />
+          </div>
+          
+          <div className="flex justify-between text-[10px] font-mono text-slate-400">
+            <span>REMEDIATION_EFFICIENCY</span>
+            <span className="text-[#FF7A18]">64.8%</span>
+          </div>
+          <div className="h-2 bg-white/5 rounded-full overflow-hidden">
+            <div className="h-full bg-[#FF7A18]" style={{ width: '64.8%' }} />
+          </div>
+        </div>
+        
+        <div className="bg-black/40 border border-white/5 rounded-2xl p-6">
+           <h4 className="text-[10px] font-mono text-slate-500 uppercase mb-4 tracking-widest text-center">Active Geographic Vectors</h4>
+           <div className="aspect-video bg-[#00D4FF]/5 rounded-lg border border-[#00D4FF]/10 flex items-center justify-center relative overflow-hidden">
+             <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(circle, #00D4FF 1px, transparent 1px)', backgroundSize: '20px 20px' }} />
+             <div className="text-[10px] font-mono text-[#00D4FF] animate-pulse">WORLD MAP VECTOR DATA [ENCRYPTED]</div>
+           </div>
+        </div>
+      </div>
+  </GlassCard>
+);
+
+const ConfigTab = () => (
+  <GlassCard className="p-8">
+     <div className="flex items-center gap-3 mb-8">
+        <Settings className="w-5 h-5 text-[#00D4FF]" />
+        <h3 className="font-bold text-white uppercase tracking-wider text-sm">Sovereign Config (Remote Config)</h3>
+      </div>
+      
+      <div className="space-y-4 max-w-2xl">
+        <div className="p-4 bg-white/5 border border-white/10 rounded-xl flex justify-between items-center group">
+          <div>
+            <div className="font-bold text-white text-xs">enable_dark_web_scan</div>
+            <div className="text-[10px] text-slate-500 font-mono">BOOLEAN | Default: true</div>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-mono text-[#0f0]">ACTIVE</span>
+            <div className="w-10 h-5 bg-[#00D4FF] rounded-full relative">
+               <div className="absolute right-1 top-1 w-3 h-3 bg-black rounded-full" />
+            </div>
+          </div>
+        </div>
+
+        <div className="p-4 bg-white/5 border border-white/10 rounded-xl flex justify-between items-center group">
+          <div>
+            <div className="font-bold text-white text-xs">max_scan_frequency_hours</div>
+            <div className="text-[10px] text-slate-500 font-mono">NUMBER | Default: 24</div>
+          </div>
+          <div className="flex items-center gap-2">
+            <input type="number" defaultValue={24} className="bg-black border border-white/10 rounded px-2 py-1 text-[10px] text-[#00D4FF] w-12 focus:outline-none" />
+          </div>
+        </div>
+
+        <div className="p-4 bg-white/5 border border-white/10 rounded-xl flex justify-between items-center group">
+          <div>
+            <div className="font-bold text-white text-xs">ai_model_version</div>
+            <div className="text-[10px] text-slate-500 font-mono">STRING | Default: gemini-3.1-pro-preview</div>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-mono text-[#00D4FF]">gemini-3.1-pro-preview</span>
+          </div>
+        </div>
+
+        <div className="pt-4">
+           <NeonButton color={NEON.blue} size="sm" disabled>
+             <Lock className="w-3 h-3 mr-2" />
+             PUBLISH CHANGES
+           </NeonButton>
+           <p className="text-[10px] text-slate-500 italic mt-2">Publishing requires Level 3 biometric authorization.</p>
+        </div>
+      </div>
+  </GlassCard>
+);

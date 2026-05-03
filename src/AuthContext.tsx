@@ -1,9 +1,11 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, onAuthStateChanged } from 'firebase/auth';
 import { auth, db, loginWithGoogle, loginAnonymously, logout } from './firebase';
-import { doc, getDoc, setDoc, onSnapshot, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, setDoc, onSnapshot, serverTimestamp, updateDoc } from 'firebase/firestore';
 import { handleFirestoreError, OperationType } from './utils/firestoreErrorHandler';
 import { logEvent, AuditLogType } from './services/auditService';
+import { initializeRemoteConfig } from './services/remoteConfigService';
+import { updateProfile as firebaseUpdateProfile } from 'firebase/auth';
 
 interface AuthContextType {
   user: User | null;
@@ -32,6 +34,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const unsubscribeAuth = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
       if (currentUser) {
+        // Initialize Remote Config for the user
+        initializeRemoteConfig();
+        
         const userRef = doc(db, 'users', currentUser.uid);
         
         try {
@@ -139,8 +144,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     console.log("Bind passkey not implemented");
   };
 
-  const handleUpdateProfile = async (data: Record<string, unknown>) => {
-    console.log("Update profile not implemented", data);
+  const handleUpdateProfile = async (data: { displayName?: string, photoURL?: string }) => {
+    if (!user) return;
+    try {
+      // Update Firebase Auth profile
+      await firebaseUpdateProfile(user, data);
+      
+      // Update Firestore user document
+      const userRef = doc(db, 'users', user.uid);
+      await updateDoc(userRef, {
+        ...data,
+        updatedAt: serverTimestamp()
+      });
+      
+      logEvent(AuditLogType.USER_PROFILE_UPDATED, `User profile updated: ${Object.keys(data).join(', ')}`, user.uid, user.email || undefined);
+    } catch (error) {
+      console.error("Error updating profile:", error);
+      handleFirestoreError(error, OperationType.UPDATE, `users/${user.uid}`);
+      throw error;
+    }
   };
 
   return (

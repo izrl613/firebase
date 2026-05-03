@@ -2,14 +2,20 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../AuthContext';
 import { NEON, GlassCard, NeonButton, NeonText } from './UI';
 import { motion } from 'framer-motion';
-import { User, Shield, History, Save, AlertTriangle, Key, Lock, Fingerprint } from 'lucide-react';
+import { User, Shield, History, Save, AlertTriangle, Key, Lock, Fingerprint, Camera, Loader2 } from 'lucide-react';
 import { collection, query, where, orderBy, limit, getDocs } from 'firebase/firestore';
 import { db } from '../firebase';
+import { uploadProfilePicture } from '../services/storageService';
+import { requestNotificationPermission } from '../services/messagingService';
+import { toast } from 'sonner';
+import { Bell, BellOff } from 'lucide-react';
 
 export const UserProfileSettings = () => {
   const { user, sovereignScore, updateProfile, isAnonymous } = useAuth();
   const [displayName, setDisplayName] = useState(user?.displayName || '');
   const [isSaving, setIsSaving] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [scoreHistory, setScoreHistory] = useState<any[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(true);
 
@@ -44,10 +50,43 @@ export const UserProfileSettings = () => {
     setIsSaving(true);
     try {
       await updateProfile({ displayName });
+      toast.success("Identity updated successfully");
     } catch (error) {
       console.error("Failed to update profile:", error);
+      toast.error("Failed to update identity");
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast.error("Please upload an image file");
+      return;
+    }
+
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("Image size must be less than 2MB");
+      return;
+    }
+
+    setIsUploading(true);
+    setUploadProgress(0);
+    try {
+      const downloadURL = await uploadProfilePicture(user.uid, file, (pct) => {
+        setUploadProgress(Math.round(pct));
+      });
+      await updateProfile({ photoURL: downloadURL });
+      toast.success("Profile picture updated");
+    } catch (error) {
+      console.error("Image upload failed:", error);
+      toast.error("Failed to upload image");
+    } finally {
+      setIsUploading(false);
+      setUploadProgress(0);
     }
   };
 
@@ -84,6 +123,38 @@ export const UserProfileSettings = () => {
             <div className="flex items-center gap-3 mb-6">
               <User className="w-5 h-5 text-[#FF2E9F]" />
               <h3 className="text-lg font-bold text-white tracking-tight">Identity Parameters</h3>
+            </div>
+
+            <div className="flex flex-col md:flex-row items-center gap-8 mb-8 pb-8 border-b border-white/5">
+              <div className="relative group">
+                <div className="w-24 h-24 rounded-full bg-gradient-to-tr from-[#FF2E9F] to-[#00D4FF] p-[2px]">
+                  <div className="w-full h-full rounded-full bg-[#0B1020] flex items-center justify-center overflow-hidden relative">
+                    {user?.photoURL ? (
+                      <img src={user.photoURL} alt="Profile" className="w-full h-full object-cover" />
+                    ) : (
+                      <User className="w-8 h-8 text-white/20" />
+                    )}
+                    {isUploading && (
+                      <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center">
+                        <Loader2 className="w-6 h-6 text-[#00D4FF] animate-spin mb-1" />
+                        <span className="text-[10px] text-[#00D4FF] font-mono">{uploadProgress}%</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <label className="absolute bottom-0 right-0 p-2 bg-[#00D4FF] rounded-full text-black cursor-pointer hover:scale-110 transition-transform shadow-lg">
+                  <Camera className="w-4 h-4" />
+                  <input type="file" className="hidden" onChange={handleImageUpload} disabled={isUploading} accept="image/*" />
+                </label>
+              </div>
+              <div className="flex-1 text-center md:text-left">
+                <h4 className="text-sm font-bold text-white mb-1">Identity Avatar</h4>
+                <p className="text-xs text-slate-400 mb-2">Upload a profile picture to represent your sovereign identity across the enclave.</p>
+                <div className="flex flex-wrap gap-2 justify-center md:justify-start">
+                   <span className="px-2 py-1 bg-white/5 rounded text-[10px] text-slate-500 border border-white/10 uppercase tracking-widest font-mono">JPG/PNG</span>
+                   <span className="px-2 py-1 bg-white/5 rounded text-[10px] text-slate-500 border border-white/10 uppercase tracking-widest font-mono">MAX 2MB</span>
+                </div>
+              </div>
             </div>
             
             <form onSubmit={handleUpdateProfile} className="space-y-6">
@@ -170,6 +241,44 @@ export const UserProfileSettings = () => {
                 </div>
                 <p className="text-xs text-slate-400 leading-relaxed">Enable advanced obfuscation for your public metadata footprint.</p>
               </div>
+            </div>
+          </GlassCard>
+
+          {/* Communication Settings */}
+          <GlassCard className="p-8">
+            <div className="flex items-center gap-3 mb-6">
+              <Bell className="w-5 h-5 text-[#00D4FF]" />
+              <h3 className="text-lg font-bold text-white tracking-tight">Communication Enclaves</h3>
+            </div>
+
+            <div className="flex items-center justify-between p-4 bg-white/5 border border-white/10 rounded-xl">
+               <div className="flex items-center gap-3">
+                 <div className={`p-2 rounded-lg ${user?.notificationsEnabled ? 'bg-green-500/10' : 'bg-slate-500/10'}`}>
+                   {user?.notificationsEnabled ? <Bell className="w-4 h-4 text-green-500" /> : <BellOff className="w-4 h-4 text-slate-500" />}
+                 </div>
+                 <div>
+                   <div className="font-bold text-sm text-white">Push Notifications</div>
+                   <p className="text-[10px] text-slate-400">Receive real-time alerts for critical DIFF exposures and threat correlations.</p>
+                 </div>
+               </div>
+               <button 
+                 onClick={async () => {
+                   if (!user) return;
+                   const token = await requestNotificationPermission(user.uid);
+                   if (token) {
+                     toast.success("Notifications enabled successfully");
+                   } else {
+                     toast.error("Failed to enable notifications. Please check browser permissions.");
+                   }
+                 }}
+                 className={`px-4 py-1.5 rounded-lg font-mono text-[10px] font-bold transition-all
+                   ${user?.notificationsEnabled 
+                     ? 'bg-green-500/20 text-green-500 border border-green-500/30' 
+                     : 'bg-[#00D4FF]/10 text-[#00D4FF] border border-[#00D4FF]/30 hover:bg-[#00D4FF]/20'
+                   }`}
+               >
+                 {user?.notificationsEnabled ? 'ENABLED' : 'ACTIVATE'}
+               </button>
             </div>
           </GlassCard>
         </div>

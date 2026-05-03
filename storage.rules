@@ -1,0 +1,15 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /{allPaths=**} {
+      // Allow authenticated users to read/write their own files in a 'users/{uid}' folder
+      match /users/{userId}/{allPaths=**} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+      
+      // Allow admins full access
+      allow read, write: if request.auth != null && 
+        (request.auth.token.email == 'idin@agape.nyc' || request.auth.token.email == 'agape@sovereign.nyc');
+    }
+  }
+}

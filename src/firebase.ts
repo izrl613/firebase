@@ -12,6 +12,7 @@ import { getStorage } from 'firebase/storage';
 import { getFunctions } from 'firebase/functions';
 import { getMessaging, isSupported as isMessagingSupported } from 'firebase/messaging';
 import { getRemoteConfig } from 'firebase/remote-config';
+import { getDatabase } from 'firebase/database';
 
 // Import the Firebase configuration
 import firebaseConfig from '../firebase-applet-config.json';
@@ -23,6 +24,7 @@ export const db = getFirestore(app, (firebaseConfig as { firestoreDatabaseId?: s
 export const storage = getStorage(app);
 export const functions = getFunctions(app);
 export const remoteConfig = getRemoteConfig(app);
+export const database = getDatabase(app);
 
 // Test Firestore connection on boot
 async function testConnection() {

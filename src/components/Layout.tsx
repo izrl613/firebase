@@ -3,8 +3,10 @@ import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
 import { useScan } from '../ScanContext';
 import { NEON, NeonText, NeonButton } from './UI';
-import { motion } from 'framer-motion';
-import { LogOut, User as UserIcon, Settings, Search, Shield, ChevronDown, FileText, History } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { LogOut, User as UserIcon, Settings, Search, Shield, ChevronDown, FileText, History, Activity, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { checkBackendHealth } from '../services/functionsService';
+import { toast } from 'sonner';
 
 const DIFF_MODULES = [
   { id: "email", icon: "✉", label: "Email Breach Scanner", vector: "V-01", nuked: 3, knoxed: 12, monitored: 2, severity: 72, to: "/email" },
@@ -289,7 +291,28 @@ const Header = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [backendStatus, setBackendStatus] = useState<'checking' | 'online' | 'offline'>('checking');
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const checkHealth = async () => {
+      setBackendStatus('checking');
+      const status = await checkBackendHealth();
+      if (status) {
+        setBackendStatus('online');
+      } else {
+        setBackendStatus('offline');
+        toast.error("Backend services are unreachable. Some features may be limited.", {
+          duration: 5000,
+          icon: <AlertCircle className="w-4 h-4 text-red-500" />
+        });
+      }
+    };
+    
+    checkHealth();
+    const interval = setInterval(checkHealth, 300000); // Check every 5 mins
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => { 
     const t = setInterval(() => setTime(new Date()), 1000); 
@@ -314,6 +337,25 @@ const Header = () => {
       </div>
 
       <div style={{ height: 20, width: 1, background: "rgba(0,212,255,0.2)" }} />
+
+      {/* Backend Status */}
+      <div style={{ display: "flex", alignItems: "center", gap: 6, cursor: 'help' }} title={`Backend Status: ${backendStatus.toUpperCase()}`}>
+        {backendStatus === 'checking' ? (
+          <Activity className="w-3 h-3 text-[#00D4FF] animate-pulse" />
+        ) : backendStatus === 'online' ? (
+          <CheckCircle2 className="w-3 h-3 text-[#0f0]" />
+        ) : (
+          <AlertCircle className="w-3 h-3 text-red-500" />
+        )}
+        <span style={{ 
+          fontFamily: "'Share Tech Mono'", 
+          fontSize: "0.6rem", 
+          color: backendStatus === 'online' ? "#0f0" : backendStatus === 'offline' ? "#ef4444" : "#00D4FF", 
+          letterSpacing: "0.05em" 
+        }}>
+          SYS_{backendStatus.toUpperCase()}
+        </span>
+      </div>
 
       {/* Time */}
       <span style={{ fontFamily: "'Share Tech Mono'", fontSize: "0.7rem", color: NEON.blue }}>
