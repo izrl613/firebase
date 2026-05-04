@@ -9,22 +9,22 @@ import { checkBackendHealth } from '../services/functionsService';
 import { toast } from 'sonner';
 
 const DIFF_MODULES = [
-  { id: "email", icon: "✉", label: "Email Breach Scanner", vector: "V-01", nuked: 3, knoxed: 12, monitored: 2, severity: 72, to: "/email" },
-  { id: "social", icon: "◈", label: "Social Media Footprint", vector: "V-02", nuked: 7, knoxed: 8, monitored: 5, severity: 61, to: "/social" },
-  { id: "device", icon: "⬡", label: "Device File Scan", vector: "V-03", nuked: 1, knoxed: 24, monitored: 3, severity: 88, to: "/device" },
-  { id: "mobile", icon: "◻", label: "Mobile Security Layer", vector: "V-04", nuked: 0, knoxed: 18, monitored: 1, severity: 95, to: "/system" },
-  { id: "deepweb", icon: "◉", label: "Deep Web Exposure", vector: "V-05", nuked: 5, knoxed: 3, monitored: 8, severity: 42, to: "/deepweb" },
-  { id: "broker", icon: "⧫", label: "Data Broker Removal", vector: "V-06", nuked: 12, knoxed: 4, monitored: 6, severity: 38, to: "/databroker" },
-  { id: "password", icon: "⬟", label: "Password Vault Analysis", vector: "V-07", nuked: 2, knoxed: 31, monitored: 0, severity: 91, to: "/password" },
-  { id: "location", icon: "◎", label: "Location Data Footprint", vector: "V-08", nuked: 4, knoxed: 9, monitored: 7, severity: 55, to: "/location" },
-  { id: "browser", icon: "◯", label: "Browser & Cookie Tracker", vector: "V-09", nuked: 8, knoxed: 6, monitored: 11, severity: 49, to: "/browser" },
-  { id: "financial", icon: "⬡", label: "Financial Identity Exposure", vector: "V-10", nuked: 1, knoxed: 15, monitored: 2, severity: 87, to: "/financial" },
-  { id: "medical", icon: "⊕", label: "Medical Data Footprint", vector: "V-11", nuked: 0, knoxed: 7, monitored: 1, severity: 93, to: "/medical" },
-  { id: "biometric", icon: "⊛", label: "Voice & Biometric Data", vector: "V-12", nuked: 2, knoxed: 11, monitored: 4, severity: 79, to: "/biometric" },
-  { id: "iot", icon: "⊡", label: "IoT & Smart Device Scan", vector: "V-13", nuked: 3, knoxed: 8, monitored: 5, severity: 66, to: "/iot" },
-  { id: "cloud", icon: "⊞", label: "Cloud Storage Exposure", vector: "V-14", nuked: 1, knoxed: 19, monitored: 2, severity: 85, to: "/cloud" },
-  { id: "darkweb", icon: "◈", label: "Dark Web Monitoring", vector: "V-15", nuked: 6, knoxed: 2, monitored: 9, severity: 34, to: "/darkweb" },
-  { id: "behavioral", icon: "⊟", label: "Behavioral Profile Analysis", vector: "V-16", nuked: 4, knoxed: 13, monitored: 6, severity: 71, to: "/behavioral" },
+  { id: "email", icon: "✉", label: "Email Breach Scanner", vector: "V-01", to: "/email" },
+  { id: "social", icon: "◈", label: "Social Media Footprint", vector: "V-02", to: "/social" },
+  { id: "device", icon: "⬡", label: "Device File Scan", vector: "V-03", to: "/device" },
+  { id: "mobile", icon: "◻", label: "Mobile System Security", vector: "V-04", to: "/system" },
+  { id: "laptop", icon: "💻", label: "Laptop System Security", vector: "V-05", to: "/system" },
+  { id: "deepweb", icon: "◉", label: "Deep Web Exposure", vector: "V-06", to: "/deepweb" },
+  { id: "broker", icon: "⧫", label: "Data Broker Removal", vector: "V-07", to: "/databroker" },
+  { id: "password", icon: "⬟", label: "Password Vault Audit", vector: "V-08", to: "/password" },
+  { id: "network", icon: "◎", label: "Network & DNS Security", vector: "V-09", to: "/network" },
+  { id: "cloud", icon: "⊞", label: "Cloud Storage Security", vector: "V-10", to: "/cloud" },
+  { id: "comm", icon: "💬", label: "Communication Privacy", vector: "V-11", to: "/communication" },
+  { id: "financial", icon: "⬡", label: "Financial Identity Surface", vector: "V-12", to: "/financial" },
+  { id: "docs", icon: "📄", label: "Identity Document Exposure", vector: "V-13", to: "/documents" },
+  { id: "oauth", icon: "🔑", label: "Third-Party OAuth Audit", vector: "V-14", to: "/oauth" },
+  { id: "legal", icon: "⚖", label: "Public Records & Legal", vector: "V-15", to: "/legal" },
+  { id: "ai", icon: "⊛", label: "AI & Biometric Exposure", vector: "V-16", to: "/ai" },
 ];
 
 const Sidebar = () => {

@@ -15,18 +15,18 @@ import {
   SocialModule, 
   DeviceModule, 
   SystemModule, 
+  LaptopModule,
   DeepWebModule, 
   DataBrokerModule,
   PasswordModule,
-  LocationModule,
-  BrowserModule,
-  FinancialModule,
-  MedicalModule,
-  BiometricModule,
-  IotModule,
+  NetworkModule,
   CloudModule,
-  DarkWebModule,
-  BehavioralModule
+  CommunicationModule,
+  FinancialModule,
+  DocumentModule,
+  OauthModule,
+  LegalModule,
+  BiometricModule
 } from './components/DiffModules';
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -65,8 +65,14 @@ const AdminRoute = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
+import { SplashEntry } from './components/SplashEntry';
+
 const AppRoutes = () => {
-  const { user } = useAuth();
+  const { user, setupComplete, setSetupComplete } = useAuth();
+
+  if (user && !setupComplete) {
+    return <SplashEntry onComplete={() => setSetupComplete(true)} />;
+  }
 
   return (
     <Routes>
@@ -78,18 +84,18 @@ const AppRoutes = () => {
         <Route path="social" element={<SocialModule />} />
         <Route path="device" element={<DeviceModule />} />
         <Route path="system" element={<SystemModule />} />
+        <Route path="laptop" element={<LaptopModule />} />
         <Route path="deepweb" element={<DeepWebModule />} />
         <Route path="databroker" element={<DataBrokerModule />} />
         <Route path="password" element={<PasswordModule />} />
-        <Route path="location" element={<LocationModule />} />
-        <Route path="browser" element={<BrowserModule />} />
-        <Route path="financial" element={<FinancialModule />} />
-        <Route path="medical" element={<MedicalModule />} />
-        <Route path="biometric" element={<BiometricModule />} />
-        <Route path="iot" element={<IotModule />} />
+        <Route path="network" element={<NetworkModule />} />
         <Route path="cloud" element={<CloudModule />} />
-        <Route path="darkweb" element={<DarkWebModule />} />
-        <Route path="behavioral" element={<BehavioralModule />} />
+        <Route path="communication" element={<CommunicationModule />} />
+        <Route path="financial" element={<FinancialModule />} />
+        <Route path="documents" element={<DocumentModule />} />
+        <Route path="oauth" element={<OauthModule />} />
+        <Route path="legal" element={<LegalModule />} />
+        <Route path="ai" element={<BiometricModule />} />
         <Route path="architect" element={<ArchitectAI />} />
         <Route path="security-tips" element={<SecurityTips />} />
         <Route path="settings" element={<UserProfileSettings />} />

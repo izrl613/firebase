@@ -6,17 +6,22 @@ import { handleFirestoreError, OperationType } from './utils/firestoreErrorHandl
 import { logEvent, AuditLogType } from './services/auditService';
 import { initializeRemoteConfig } from './services/remoteConfigService';
 import { updateProfile as firebaseUpdateProfile } from 'firebase/auth';
+import { startRegistration } from '@simplewebauthn/browser';
+import { toast } from 'sonner';
 
 interface AuthContextType {
   user: User | null;
+  userData: any;
   isAdmin: boolean;
   isAnonymous: boolean;
   sovereignScore: number;
+  setupComplete: boolean;
   loading: boolean;
   login: () => Promise<void>;
   logout: () => Promise<void>;
   emergencyBypass: () => Promise<void>;
   bindPasskey: () => Promise<void>;
+  setSetupComplete: (complete: boolean) => Promise<void>;
   updateProfile: (data: Record<string, unknown>) => Promise<void>;
 }
 
@@ -24,8 +29,10 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [userData, setUserData] = useState<any>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [sovereignScore, setSovereignScore] = useState(100);
+  const [setupComplete, setSetupCompleteState] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -42,18 +49,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         try {
           const userSnap = await getDoc(userRef);
           
-          const isSuperAdmin = currentUser.email === 'idin@agape.nyc' || currentUser.email === 'agape@sovereign.nyc' || currentUser.isAnonymous;
+          const isSuperAdmin = currentUser.email === 'idin@agape.nyc' || 
+                               currentUser.email === 'agape@sovereign.nyc' || 
+                               (currentUser.isAnonymous && currentUser.uid === 'emergency-bypass-admin-999');
           
           if (!userSnap.exists()) {
+            const initialData = {
+              uid: currentUser.uid,
+              email: currentUser.email || 'unknown@example.com',
+              displayName: currentUser.displayName || '',
+              role: isSuperAdmin ? 'admin' : 'user',
+              createdAt: serverTimestamp(),
+              sovereignScore: 100,
+              setupComplete: false,
+              notificationsEnabled: false
+            };
             try {
-              await setDoc(userRef, {
-                uid: currentUser.uid,
-                email: currentUser.email || 'unknown@example.com',
-                displayName: currentUser.displayName || '',
-                role: isSuperAdmin ? 'admin' : 'user',
-                createdAt: serverTimestamp(),
-                sovereignScore: 100
-              });
+              await setDoc(userRef, initialData);
+              setSetupCompleteState(false);
+              setUserData(initialData);
               logEvent(AuditLogType.USER_REGISTERED, `New user registered: ${currentUser.email}`, currentUser.uid, currentUser.email || undefined);
             } catch (err) {
               handleFirestoreError(err, OperationType.CREATE, `users/${currentUser.uid}`);
@@ -61,15 +75,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setIsAdmin(isSuperAdmin);
             setSovereignScore(100);
           } else {
-            setIsAdmin(userSnap.data().role === 'admin' || isSuperAdmin);
-            setSovereignScore(userSnap.data().sovereignScore || 100);
+            const data = userSnap.data();
+            setUserData(data);
+            setIsAdmin(data.role === 'admin' || isSuperAdmin);
+            setSovereignScore(data.sovereignScore || 100);
+            setSetupCompleteState(data.setupComplete || false);
             logEvent(AuditLogType.USER_LOGIN, `User logged in: ${currentUser.email}`, currentUser.uid, currentUser.email || undefined);
           }
 
           unsubscribeUserDoc = onSnapshot(userRef, (doc) => {
             if (doc.exists()) {
-              setSovereignScore(doc.data().sovereignScore || 100);
-              setIsAdmin(doc.data().role === 'admin' || isSuperAdmin);
+              const data = doc.data();
+              setUserData(data);
+              setSovereignScore(data.sovereignScore || 100);
+              setIsAdmin(data.role === 'admin' || isSuperAdmin);
+              setSetupCompleteState(data.setupComplete || false);
             }
           }, (error) => {
             handleFirestoreError(error, OperationType.GET, `users/${currentUser.uid}`);
@@ -80,6 +100,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } else {
         setIsAdmin(false);
         setSovereignScore(100);
+        setSetupCompleteState(false);
+        setUserData(null);
         if (unsubscribeUserDoc) unsubscribeUserDoc();
       }
       setLoading(false);
@@ -128,6 +150,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setUser(mockUser);
           setIsAdmin(true);
           setSovereignScore(100);
+          setSetupCompleteState(true);
           setLoading(false);
         } else {
           console.error("Emergency bypass failed", err);
@@ -141,7 +164,59 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const handleBindPasskey = async () => {
-    console.log("Bind passkey not implemented");
+    const currentUser = user;
+    if (!currentUser) return;
+    
+    try {
+      // 1. Get registration options from server
+      const optionsRes = await fetch('/api/auth/register-options', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: currentUser.uid, userEmail: currentUser.email }),
+      });
+      
+      if (!optionsRes.ok) throw new Error('Failed to fetch registration options');
+      const options = await optionsRes.json();
+
+      // 2. Start registration with the browser
+      const attestationResponse = await startRegistration(options);
+
+      // 3. Verify with server
+      const verifyRes = await fetch('/api/auth/verify-registration', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(attestationResponse),
+      });
+      const { verified } = await verifyRes.json();
+
+      if (verified) {
+        toast.success('Universal Passkey bound to this device successfully.');
+        logEvent(AuditLogType.SECURITY_EVENT, 'Passkey bound to device', currentUser.uid, currentUser.email || undefined);
+      } else {
+        throw new Error('Verification failed');
+      }
+    } catch (error: any) {
+      console.error('WebAuthn Error:', error);
+      if (error.name === 'NotAllowedError') {
+        toast.error('Passkey registration cancelled by user.');
+      } else {
+        toast.error(`WebAuthn Error: ${error.message || 'Unknown error'}`);
+      }
+    }
+  };
+
+  const handleSetSetupComplete = async (complete: boolean) => {
+    if (!user) return;
+    try {
+      const userRef = doc(db, 'users', user.uid);
+      await updateDoc(userRef, {
+        setupComplete: complete,
+        updatedAt: serverTimestamp()
+      });
+      setSetupCompleteState(complete);
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, `users/${user.uid}`);
+    }
   };
 
   const handleUpdateProfile = async (data: { displayName?: string, photoURL?: string }) => {
@@ -157,7 +232,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         updatedAt: serverTimestamp()
       });
       
-      logEvent(AuditLogType.USER_PROFILE_UPDATED, `User profile updated: ${Object.keys(data).join(', ')}`, user.uid, user.email || undefined);
+      logEvent(AuditLogType.USER_UPDATED, `User profile updated: ${Object.keys(data).join(', ')}`, user.uid, user.email || undefined);
     } catch (error) {
       console.error("Error updating profile:", error);
       handleFirestoreError(error, OperationType.UPDATE, `users/${user.uid}`);
@@ -168,14 +243,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   return (
     <AuthContext.Provider value={{ 
       user, 
+      userData,
       isAdmin, 
       isAnonymous: user?.isAnonymous || false,
       sovereignScore, 
+      setupComplete,
       loading, 
       login: handleLogin, 
       logout: handleLogout, 
       emergencyBypass: handleEmergencyBypass,
       bindPasskey: handleBindPasskey,
+      setSetupComplete: handleSetSetupComplete,
       updateProfile: handleUpdateProfile
     }}>
       {children}

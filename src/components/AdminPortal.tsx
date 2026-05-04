@@ -16,7 +16,8 @@ import {
   Filter,
   RefreshCw,
   Lock,
-  FileText
+  FileText,
+  Cpu
 } from 'lucide-react';
 import { collection, getDocs, query, limit, orderBy } from 'firebase/firestore';
 import { db, storage } from '../firebase';
@@ -58,13 +59,28 @@ export const AdminPortal = () => {
 
   if (!isAdmin) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
-        <Lock className="w-16 h-16 text-[#FF2E9F] mb-6" />
-        <NeonText color={NEON.magenta} size="2rem" weight={800}>ACCESS RESTRICTED</NeonText>
-        <p className="text-slate-400 mt-4 max-w-md font-mono text-sm">
-          This enclave is protected by hardware-bound sovereign protocols. 
-          Only registered administrators can access this GUI.
-        </p>
+      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center p-8">
+        <div className="relative mb-8">
+          <Shield className="w-20 h-20 text-[#FF2E9F] animate-pulse" />
+          <Lock className="w-8 h-8 text-white absolute bottom-0 right-0 bg-[#FF2E9F] rounded-full p-1 border-4 border-[#0B1020]" />
+        </div>
+        <NeonText color={NEON.magenta} size="2.2rem" weight={900} className="tracking-tighter">ENCLAVE_LOCKED</NeonText>
+        <div className="max-w-md mt-6 p-6 bg-[#FF2E9F]/5 border border-[#FF2E9F]/20 rounded-2xl backdrop-blur-xl">
+          <p className="text-slate-300 font-mono text-sm leading-relaxed">
+            Hardware-bound sovereign protocols engaged. Access to the Admin Portal requires a registered Level 3 Universal Passkey bound to 
+            <span className="text-[#FF2E9F] ml-1">idin@agape.nyc</span> or <span className="text-[#FF2E9F] ml-1">agape@sovereign.nyc</span>.
+          </p>
+          <div className="mt-4 pt-4 border-t border-[#FF2E9F]/10 flex justify-center gap-4">
+            <div className="flex flex-col items-center">
+              <span className="text-[10px] font-mono text-slate-500 uppercase">Status</span>
+              <span className="text-[10px] font-mono text-[#FF2E9F]">UNAUTHORIZED</span>
+            </div>
+            <div className="flex flex-col items-center">
+              <span className="text-[10px] font-mono text-slate-500 uppercase">Vector</span>
+              <span className="text-[10px] font-mono text-[#FF2E9F]">ENCLAVE_ROOT</span>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
@@ -163,17 +179,28 @@ const OverviewTab = ({ stats, loading }: any) => (
       <div className="text-xs text-slate-400 font-mono mt-1">SYSTEM UPTIME</div>
     </GlassCard>
 
-    <GlassCard className="md:col-span-3 p-8">
+    <GlassCard className="p-6 md:col-span-1 border-l-4 border-[#00D4FF]">
+      <div className="flex justify-between items-start mb-4">
+        <Cpu className="w-6 h-6 text-[#00D4FF]" />
+        <span className="text-[10px] font-mono text-[#00D4FF] bg-[#00D4FF]/10 px-2 py-0.5 rounded-full">ENCRYPTED</span>
+      </div>
+      <div className="text-xs font-mono text-white truncate">SHA256: 0B1020_PROD_B3FF...</div>
+      <div className="text-[10px] text-slate-500 font-mono mt-1 uppercase">KERNEL_INTEGRITY_BOND</div>
+    </GlassCard>
+
+    <GlassCard className="md:col-span-2 p-8">
       <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
         <RefreshCw className="w-5 h-5 text-[#00D4FF]" />
         Live Platform Heartbeat
       </h3>
       <div className="h-48 flex items-end gap-1 px-4">
         {[...Array(40)].map((_, i) => (
-          <div 
+          <motion.div 
             key={i} 
+            initial={{ height: 0 }}
+            animate={{ height: `${Math.random() * 80 + 20}%` }}
+            transition={{ duration: 1.5, delay: i * 0.05, repeat: Infinity, repeatType: 'reverse' }}
             className="flex-1 bg-[#00D4FF]/20 rounded-t-sm hover:bg-[#00D4FF]/40 transition-colors cursor-help"
-            style={{ height: `${Math.random() * 80 + 20}%` }}
             title={`Activity at ${i}:00: ${Math.floor(Math.random() * 100)} events`}
           />
         ))}
@@ -293,7 +320,7 @@ const FirestoreTab = () => {
             key={coll}
             onClick={() => setActiveCollection(coll)}
             className={`w-full text-left px-4 py-3 rounded-xl font-mono text-xs font-bold transition-all border
-              ${activeTab === coll 
+              ${activeCollection === coll 
                 ? 'bg-[#00D4FF]/10 border-[#00D4FF]/30 text-[#00D4FF]' 
                 : 'bg-black/40 border-white/5 text-slate-400 hover:border-white/10'
               }`}

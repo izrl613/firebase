@@ -11,14 +11,22 @@ export const NEON = {
   textMuted: "#7B9BB5",
 };
 
-export const NeonText: React.FC<{ children: React.ReactNode, color?: string, size?: string, weight?: number, style?: React.CSSProperties }> = ({ 
+export const NeonText: React.FC<{ 
+  children: React.ReactNode, 
+  color?: string, 
+  size?: string, 
+  weight?: number, 
+  style?: React.CSSProperties,
+  className?: string
+}> = ({ 
   children, 
   color = NEON.blue, 
   size = "1rem", 
   weight = 700, 
-  style = {} 
+  style = {},
+  className = ""
 }) => (
-  <span style={{ fontFamily: "'Orbitron', monospace", color, fontSize: size, fontWeight: weight, textShadow: `0 0 10px ${color}66`, letterSpacing: "0.05em", ...style }}>
+  <span className={className} style={{ fontFamily: "'Orbitron', monospace", color, fontSize: size, fontWeight: weight, textShadow: `0 0 10px ${color}66`, letterSpacing: "0.05em", ...style }}>
     {children}
   </span>
 );

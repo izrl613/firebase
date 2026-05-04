@@ -11,7 +11,7 @@ import { toast } from 'sonner';
 import { Bell, BellOff } from 'lucide-react';
 
 export const UserProfileSettings = () => {
-  const { user, sovereignScore, updateProfile, isAnonymous } = useAuth();
+  const { user, userData, sovereignScore, updateProfile, isAnonymous } = useAuth();
   const [displayName, setDisplayName] = useState(user?.displayName || '');
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -253,8 +253,8 @@ export const UserProfileSettings = () => {
 
             <div className="flex items-center justify-between p-4 bg-white/5 border border-white/10 rounded-xl">
                <div className="flex items-center gap-3">
-                 <div className={`p-2 rounded-lg ${user?.notificationsEnabled ? 'bg-green-500/10' : 'bg-slate-500/10'}`}>
-                   {user?.notificationsEnabled ? <Bell className="w-4 h-4 text-green-500" /> : <BellOff className="w-4 h-4 text-slate-500" />}
+                 <div className={`p-2 rounded-lg ${userData?.notificationsEnabled ? 'bg-green-500/10' : 'bg-slate-500/10'}`}>
+                   {userData?.notificationsEnabled ? <Bell className="w-4 h-4 text-green-500" /> : <BellOff className="w-4 h-4 text-slate-500" />}
                  </div>
                  <div>
                    <div className="font-bold text-sm text-white">Push Notifications</div>
@@ -272,12 +272,12 @@ export const UserProfileSettings = () => {
                    }
                  }}
                  className={`px-4 py-1.5 rounded-lg font-mono text-[10px] font-bold transition-all
-                   ${user?.notificationsEnabled 
+                   ${userData?.notificationsEnabled 
                      ? 'bg-green-500/20 text-green-500 border border-green-500/30' 
                      : 'bg-[#00D4FF]/10 text-[#00D4FF] border border-[#00D4FF]/30 hover:bg-[#00D4FF]/20'
                    }`}
                >
-                 {user?.notificationsEnabled ? 'ENABLED' : 'ACTIVATE'}
+                 {userData?.notificationsEnabled ? 'ENABLED' : 'ACTIVATE'}
                </button>
             </div>
           </GlassCard>

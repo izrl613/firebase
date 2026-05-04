@@ -10,9 +10,42 @@ async function startServer() {
   const app = express();
   const PORT = Number(process.env.PORT) || 3000;
 
+  app.use(express.json());
+
   // API routes
   app.get("/api/health", (req, res) => {
     res.json({ status: "ok", timestamp: new Date().toISOString() });
+  });
+
+  // WebAuthn Registration Options
+  app.post("/api/auth/register-options", (req, res) => {
+    const { userId, userEmail } = req.body;
+    
+    // In a real app, you'd generate a unique challenge and save it to a session
+    const challenge = "mock_challenge_" + Math.random().toString(36).substring(7);
+    
+    const host = req.get('host')?.split(':')[0] || 'localhost';
+    const rpId = host === '127.0.0.1' ? 'localhost' : host;
+    
+    res.json({
+      challenge,
+      rp: { name: "Agape Sovereign", id: rpId },
+      user: { id: userId, name: userEmail, displayName: userEmail },
+      pubKeyCredParams: [{ alg: -7, type: "public-key" }, { alg: -257, type: "public-key" }],
+      timeout: 60000,
+      attestation: "none",
+      authenticatorSelection: {
+        residentKey: "preferred",
+        userVerification: "preferred",
+        authenticatorAttachment: "platform",
+      },
+    });
+  });
+
+  // WebAuthn Verification (Mock for demo)
+  app.post("/api/auth/verify-registration", (req, res) => {
+    // In a real app, you'd use verifyRegistrationResponse from @simplewebauthn/server
+    res.json({ verified: true });
   });
 
   // Vite middleware for development

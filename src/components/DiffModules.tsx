@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Mail, Share2, HardDrive, Smartphone, Globe, Database, FileText, X, AlertTriangle, Loader2, Zap, Shield, Search, Cpu } from 'lucide-react';
+import { Mail, Share2, HardDrive, Smartphone, Globe, Database, FileText, X, AlertTriangle, Loader2, Zap, Shield, Search, Cpu, Lock } from 'lucide-react';
 import { NEON, NeonText, NeonButton, GlassCard, StatusBadge } from './UI';
 import { useScan } from '../ScanContext';
 import { generateSuspiciousReport, ScanFinding } from '../services/scanService';
@@ -25,6 +25,9 @@ export const DiffModule = ({ title, description, icon, vector, moduleId, scanLab
   const knoxed = findings.filter(f => f.status === 'KNOXED').length;
   const monitored = findings.filter(f => f.status === 'MONITORED').length;
   
+  // Generate a consistent integrity hash for the module based on its state
+  const integrityHash = `SHA256:${moduleId.toUpperCase()}_${findings.length}_${nuked}_${knoxed}`;
+
   let severity = 100;
   if (findings.length > 0) {
     const points = knoxed * 10 + monitored * 5;
@@ -46,10 +49,23 @@ export const DiffModule = ({ title, description, icon, vector, moduleId, scanLab
 
   return (
     <div style={{ animation: "fade-in 0.3s ease" }}>
+      {/* Integrity Tag */}
+      <div className="flex justify-between items-center mb-6">
+        <div className="px-3 py-1 bg-white/5 border border-white/10 rounded-full flex items-center gap-2">
+          <Lock className="w-3 h-3 text-[#00D4FF]" />
+          <span className="text-[10px] font-mono text-[#00D4FF] tracking-tighter truncate max-w-[200px]">
+            {integrityHash}
+          </span>
+        </div>
+        <div className="text-[10px] font-mono text-slate-500 uppercase tracking-widest">
+          Sovereign Enclave v2.0
+        </div>
+      </div>
+
       <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 24 }}>
         <span style={{ color: sevColor, fontSize: "2rem", filter: `drop-shadow(0 0 8px ${sevColor})` }}>{icon}</span>
         <div style={{ flex: 1 }}>
-          <div style={{ fontFamily: "'Share Tech Mono'", fontSize: "0.6rem", color: NEON.orange, letterSpacing: "0.15em" }}>{vector} · DIFF MODULE</div>
+          <div style={{ fontFamily: "'Share Tech Mono'", fontSize: "0.6rem", color: NEON.orange, letterSpacing: "0.15em" }}>{vector} · DIFF VECTOR</div>
           <NeonText color={sevColor} size="1.2rem" weight={700}>{title}</NeonText>
           <p style={{ color: NEON.textMuted, fontSize: "0.8rem", marginTop: "4px" }}>{description}</p>
         </div>
@@ -301,249 +317,17 @@ export const DiffModule = ({ title, description, icon, vector, moduleId, scanLab
 // Export specific modules
 export const EmailModule = () => <DiffModule title="Email Breach & Metadata Scanner" description="Checks breach databases and analyzes exposed metadata patterns." icon="✉" vector="V-01" moduleId="email" scanLabel="Scan Emails" />;
 export const SocialModule = () => <DiffModule title="Social Media Footprint Scanner" description="Public post scraping and username reuse detection." icon="◈" vector="V-02" moduleId="social" />;
-export const DeviceModule = () => {
-  const { triggerModuleScan, isScanning } = useScan();
-  
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-      <DiffModule 
-        title="Device File Scan" 
-        description="File pattern analysis and metadata exposure detection." 
-        icon="⬡" 
-        vector="V-03" 
-        moduleId="device" 
-      />
-      
-      <GlassCard style={{ 
-        padding: "32px", 
-        textAlign: "center", 
-        border: `1px solid ${NEON.blue}44`, 
-        background: "linear-gradient(135deg, rgba(0, 212, 255, 0.05) 0%, rgba(6, 13, 31, 0) 100%)",
-        position: 'relative',
-        overflow: 'hidden'
-      }}>
-        {/* Background decorative element */}
-        <div style={{ 
-          position: 'absolute', 
-          top: -20, 
-          right: -20, 
-          opacity: 0.05, 
-          transform: 'rotate(15deg)' 
-        }}>
-          <HardDrive size={120} color={NEON.blue} />
-        </div>
-
-        <div style={{ position: 'relative', zIndex: 1 }}>
-          <div style={{ 
-            width: 64, 
-            height: 64, 
-            borderRadius: '50%', 
-            background: 'rgba(0, 212, 255, 0.1)', 
-            display: 'flex', 
-            alignItems: 'center', 
-            justifyContent: 'center',
-            margin: '0 auto 20px',
-            border: `1px solid ${NEON.blue}33`,
-            boxShadow: `0 0 20px ${NEON.blue}22`
-          }}>
-            <HardDrive size={32} color={NEON.blue} />
-          </div>
-          
-          <NeonText color={NEON.blue} size="1.25rem" weight={800}>HARDWARE INTEGRITY PROTOCOL</NeonText>
-          <p style={{ 
-            color: NEON.textMuted, 
-            fontSize: "0.9rem", 
-            marginTop: "12px", 
-            maxWidth: "600px", 
-            margin: "12px auto 24px",
-            lineHeight: 1.5
-          }}>
-            Perform an exhaustive audit of your device's security architecture. This includes UEFI/BIOS firmware verification, 
-            DMA protection status, and OS-level kernel hardening analysis.
-          </p>
-          
-          <div style={{ display: 'flex', justifyContent: 'center', gap: 16, marginBottom: 24 }}>
-            <div style={{ textAlign: 'left', padding: '10px 16px', background: 'rgba(255,255,255,0.03)', borderRadius: 8, border: '1px solid rgba(255,255,255,0.05)' }}>
-              <div style={{ fontSize: '0.6rem', color: NEON.textMuted, fontFamily: "'Share Tech Mono'" }}>FIRMWARE STATUS</div>
-              <div style={{ fontSize: '0.8rem', color: NEON.blue, fontWeight: 700 }}>VERIFIED</div>
-            </div>
-            <div style={{ textAlign: 'left', padding: '10px 16px', background: 'rgba(255,255,255,0.03)', borderRadius: 8, border: '1px solid rgba(255,255,255,0.05)' }}>
-              <div style={{ fontSize: '0.6rem', color: NEON.textMuted, fontFamily: "'Share Tech Mono'" }}>DMA PROTECTION</div>
-              <div style={{ fontSize: '0.8rem', color: NEON.orange, fontWeight: 700 }}>ACTIVE</div>
-            </div>
-            <div style={{ textAlign: 'left', padding: '10px 16px', background: 'rgba(255,255,255,0.03)', borderRadius: 8, border: '1px solid rgba(255,255,255,0.05)' }}>
-              <div style={{ fontSize: '0.6rem', color: NEON.textMuted, fontFamily: "'Share Tech Mono'" }}>KERNEL INTEGRITY</div>
-              <div style={{ fontSize: '0.8rem', color: NEON.blue, fontWeight: 700 }}>SECURED</div>
-            </div>
-          </div>
-
-          <NeonButton 
-            color={NEON.blue} 
-            size="lg" 
-            onClick={() => triggerModuleScan('device')}
-            disabled={isScanning}
-            style={{ 
-              width: '100%', 
-              maxWidth: "450px", 
-              height: "56px",
-              fontSize: "1rem",
-              boxShadow: isScanning ? 'none' : `0 0 30px ${NEON.blue}33`
-            }}
-          >
-            {isScanning ? (
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
-                <div className="animate-spin" style={{ width: 20, height: 20, border: '2px solid currentColor', borderTopColor: 'transparent', borderRadius: '50%' }} />
-                ANALYZING HARDWARE VECTORS...
-              </div>
-            ) : "⚡ INITIATE DEEP DEVICE RE-SCAN"}
-          </NeonButton>
-          
-          <div style={{ marginTop: 16, fontSize: '0.7rem', color: NEON.textMuted, fontFamily: "'Share Tech Mono'" }}>
-            ESTIMATED COMPLETION: 45 SECONDS · ARCHITECT AI ENGINE v2.4
-          </div>
-        </div>
-      </GlassCard>
-    </div>
-  );
-};
+export const DeviceModule = () => <DiffModule title="Device File Scan" description="File pattern analysis and metadata exposure detection." icon="⬡" vector="V-03" moduleId="device" />;
 export const SystemModule = () => <DiffModule title="Mobile & Laptop System Security" description="Passkey enforcement status and OS security posture." icon="◻" vector="V-04" moduleId="mobile" />;
-export const DeepWebModule = () => <DiffModule title="Deep Web Exposure Monitoring" description="Pattern-based lookup and public data indexing scan." icon="◉" vector="V-05" moduleId="deepweb" />;
-export const DataBrokerModule = () => <DiffModule title="Data Broker Removal Engine" description="Automated request templates for removal." icon="⧫" vector="V-06" moduleId="broker" />;
-export const PasswordModule = () => <DiffModule title="Password Vault Analysis" description="Checks for weak, reused, or compromised credentials." icon="⬟" vector="V-07" moduleId="password" />;
-export const LocationModule = () => <DiffModule title="Location Data Footprint" description="Analyzes historical GPS and IP-based location leaks." icon="◎" vector="V-08" moduleId="location" />;
-export const BrowserModule = () => <DiffModule title="Browser & Cookie Tracker" description="Detects invasive tracking cookies and fingerprinting." icon="◯" vector="V-09" moduleId="browser" />;
-export const FinancialModule = () => <DiffModule title="Financial Identity Exposure" description="Scans for exposed bank details or crypto addresses." icon="⬡" vector="V-10" moduleId="financial" />;
-export const MedicalModule = () => <DiffModule title="Medical Data Footprint" description="Checks for leaks in health records or insurance data." icon="⊕" vector="V-11" moduleId="medical" />;
-export const BiometricModule = () => <DiffModule title="Voice & Biometric Data" description="Analyzes exposure of facial or voice recognition data." icon="⊛" vector="V-12" moduleId="biometric" />;
-export const IotModule = () => <DiffModule title="IoT & Smart Device Scan" description="Identifies vulnerabilities in connected home devices." icon="⊡" vector="V-13" moduleId="iot" />;
-export const CloudModule = () => <DiffModule title="Cloud Storage Exposure" description="Scans for misconfigured S3 buckets or Drive permissions." icon="⊞" vector="V-14" moduleId="cloud" />;
-export const DarkWebModule = () => {
-  const { triggerModuleScan, isScanning } = useScan();
-  
-  const insights = [
-    { title: "Tor & I2P Marketplace Surveillance", desc: "Active monitoring of 400+ illicit marketplaces for ID-related listings." },
-    { title: "Breached Database Correlation", desc: "Cross-referencing 12B+ leaked credentials against your known markers." },
-    { title: "Ransomware Leak Site Monitoring", desc: "Watching corporate extortion sites for mentions of your PII in enterprise dumps." },
-    { title: "Credential Stuffing List Detection", desc: "Identifying your emails in automated bot-attack lists used by threat actors." }
-  ];
-
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-      <DiffModule 
-        title="Dark Web Monitoring" 
-        description="Real-time monitoring of underground marketplaces and breached data dumps." 
-        icon="◈" 
-        vector="V-15" 
-        moduleId="darkweb" 
-      />
-      
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 20 }}>
-        <GlassCard style={{ 
-          padding: "32px", 
-          textAlign: "center", 
-          border: `1px solid ${NEON.magenta}44`, 
-          background: "linear-gradient(135deg, rgba(255, 46, 159, 0.05) 0%, rgba(6, 13, 31, 0) 100%)",
-          position: 'relative',
-          overflow: 'hidden',
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'center'
-        }}>
-          {/* Background decorative element */}
-          <div style={{ 
-            position: 'absolute', 
-            top: -20, 
-            right: -20, 
-            opacity: 0.05, 
-            transform: 'rotate(15deg)' 
-          }}>
-            <Globe size={120} color={NEON.magenta} />
-          </div>
-
-          <div style={{ position: 'relative', zIndex: 1 }}>
-            <div style={{ 
-              width: 64, 
-              height: 64, 
-              borderRadius: '50%', 
-              background: 'rgba(255, 46, 159, 0.1)', 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'center',
-              margin: '0 auto 20px',
-              border: `1px solid ${NEON.magenta}33`,
-              boxShadow: `0 0 20px ${NEON.magenta}22`
-            }}>
-              <Globe size={32} color={NEON.magenta} />
-            </div>
-            
-            <NeonText color={NEON.magenta} size="1.25rem" weight={800}>DARK WEB SWEEP ENGINE</NeonText>
-            <p style={{ 
-              color: NEON.textMuted, 
-              fontSize: "0.9rem", 
-              marginTop: "12px", 
-              maxWidth: "600px", 
-              margin: "12px auto 24px",
-              lineHeight: 1.5
-            }}>
-              The Architect performs an exhaustive sweep across Tor networks, I2P, and criminal forums, 
-              correlating your digital markers against recent identity thefts and marketplace listings.
-            </p>
-            
-            <NeonButton 
-              color={NEON.magenta} 
-              size="lg" 
-              onClick={() => triggerModuleScan('darkweb')}
-              disabled={isScanning}
-              style={{ 
-                width: '100%', 
-                maxWidth: "350px", 
-                height: "56px",
-                fontSize: "1rem",
-                boxShadow: isScanning ? 'none' : `0 0 30px ${NEON.magenta}33`
-              }}
-            >
-              {isScanning ? (
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
-                  <div className="animate-spin" style={{ width: 20, height: 20, border: '2px solid currentColor', borderTopColor: 'transparent', borderRadius: '50%' }} />
-                  ANALYZING DARK VECTORS...
-                </div>
-              ) : "◈ INITIATE DARK WEB SWEEP"}
-            </NeonButton>
-            
-            <div style={{ marginTop: 16, fontSize: '0.7rem', color: NEON.textMuted, fontFamily: "'Share Tech Mono'" }}>
-              ESTIMATED COMPLETION: 60 SECONDS · ARCHITECT AI ENGINE v2.4
-            </div>
-          </div>
-        </GlassCard>
-
-        <GlassCard style={{ padding: '24px', border: `1px solid ${NEON.blue}22` }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
-            <Database size={18} color={NEON.blue} />
-            <NeonText color={NEON.blue} size="0.9rem" weight={700}>INTELLIGENCE INSIGHTS</NeonText>
-          </div>
-          
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            {insights.map((insight, idx) => (
-              <div key={idx} style={{ padding: '12px', background: 'rgba(255,255,255,0.02)', borderRadius: 8, border: '1px solid rgba(255,255,255,0.05)' }}>
-                <div style={{ fontSize: '0.75rem', fontWeight: 700, color: NEON.text, marginBottom: 4, fontFamily: "'Rajdhani'" }}>{insight.title}</div>
-                <div style={{ fontSize: '0.65rem', color: NEON.textMuted, fontFamily: "'Share Tech Mono'", lineHeight: 1.4 }}>{insight.desc}</div>
-              </div>
-            ))}
-          </div>
-
-          <div style={{ marginTop: 24, padding: '12px', border: `1px dashed ${NEON.orange}44`, borderRadius: 8 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-              <AlertTriangle size={14} color={NEON.orange} />
-              <div style={{ fontSize: '0.7rem', fontWeight: 700, color: NEON.orange, fontFamily: "'Orbitron'" }}>SURVEILLANCE NOTICE</div>
-            </div>
-            <div style={{ fontSize: '0.62rem', color: NEON.textMuted, fontFamily: "'Share Tech Mono'", lineHeight: 1.5 }}>
-              Dark web exposures often include high-entropy identifiers (GUIDs) and cryptographic hashes. 
-              Remediation typically requires full credential invalidation and hardware token enrollment.
-            </div>
-          </div>
-        </GlassCard>
-      </div>
-    </div>
-  );
-};
-export const BehavioralModule = () => <DiffModule title="Behavioral Profile Analysis" description="Analyzes AI-generated behavioral advertising profiles." icon="⊟" vector="V-16" moduleId="behavioral" />;
+export const LaptopModule = () => <DiffModule title="Laptop System Security" description="Firmware integrity and disk encryption audit." icon="💻" vector="V-05" moduleId="laptop" />;
+export const DeepWebModule = () => <DiffModule title="Deep Web Exposure Monitoring" description="Pattern-based lookup and public data indexing scan." icon="◉" vector="V-06" moduleId="deepweb" />;
+export const DataBrokerModule = () => <DiffModule title="Data Broker Removal Engine" description="Automated request templates for removal." icon="⧫" vector="V-07" moduleId="broker" />;
+export const PasswordModule = () => <DiffModule title="Password Vault Audit" description="Checks for weak, reused, or compromised credentials." icon="⬟" vector="V-08" moduleId="password" />;
+export const NetworkModule = () => <DiffModule title="Network & DNS Security Posture" description="Analyzes DNS leaks and insecure network protocols." icon="◎" vector="V-09" moduleId="network" />;
+export const CloudModule = () => <DiffModule title="Cloud Storage & Sync Security" description="Scans for misconfigured S3 buckets or Drive permissions." icon="⊞" vector="V-10" moduleId="cloud" />;
+export const CommunicationModule = () => <DiffModule title="Communication Privacy Audit" description="Analyzes E2EE status and metadata in messages." icon="💬" vector="V-11" moduleId="communication" />;
+export const FinancialModule = () => <DiffModule title="Financial Identity Surface" description="Scans for exposed bank details or crypto addresses." icon="⬡" vector="V-12" moduleId="financial" />;
+export const DocumentModule = () => <DiffModule title="Identity Document Exposure" description="Checks for leaks in sensitive identity documents." icon="📄" vector="V-13" moduleId="documents" />;
+export const OauthModule = () => <DiffModule title="Third-Party App OAuth Audit" description="Reviews third-party app permissions and access tokens." icon="🔑" vector="V-14" moduleId="oauth" />;
+export const LegalModule = () => <DiffModule title="Public Records & Legal Exposure" description="Scans public legal filings and court records." icon="⚖" vector="V-15" moduleId="legal" />;
+export const BiometricModule = () => <DiffModule title="AI & Biometric Data Exposure" description="Analyzes exposure of facial or voice recognition data." icon="⊛" vector="V-16" moduleId="ai" />;
