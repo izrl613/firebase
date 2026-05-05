@@ -4,14 +4,16 @@ import * as admin from "firebase-admin";
 
 admin.initializeApp();
 
+const SERVICE_ACCOUNT = "firebase-adminsdk-fbsvc@agape-sovereign.iam.gserviceaccount.com";
+
 // Basic health check function
-export const healthCheck = v2.https.onRequest((request, response) => {
+export const healthCheck = v2.https.onRequest({ serviceAccount: SERVICE_ACCOUNT }, (request, response) => {
   functions.logger.info("Health check triggered", {structuredData: true});
   response.send("Agape Sovereign Architect AI - Functions are LIVE.");
 });
 
 // Example trigger for user creation
-export const onUserCreated = functions.auth.user().onCreate(async (user: admin.auth.UserRecord) => {
+export const onUserCreated = functions.runWith({ serviceAccount: SERVICE_ACCOUNT }).auth.user().onCreate(async (user: admin.auth.UserRecord) => {
   const {uid, email, displayName} = user;
   
   try {

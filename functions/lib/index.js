@@ -1,16 +1,18 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.onUserCreated = exports.healthCheck = void 0;
-const functions = require("firebase-functions");
+const functions = require("firebase-functions/v1");
+const v2 = require("firebase-functions/v2");
 const admin = require("firebase-admin");
 admin.initializeApp();
+const SERVICE_ACCOUNT = "firebase-adminsdk-fbsvc@agape-sovereign.iam.gserviceaccount.com";
 // Basic health check function
-exports.healthCheck = functions.https.onRequest((request, response) => {
+exports.healthCheck = v2.https.onRequest({ serviceAccount: SERVICE_ACCOUNT }, (request, response) => {
     functions.logger.info("Health check triggered", { structuredData: true });
     response.send("Agape Sovereign Architect AI - Functions are LIVE.");
 });
 // Example trigger for user creation
-exports.onUserCreated = functions.auth.user().onCreate(async (user) => {
+exports.onUserCreated = functions.runWith({ serviceAccount: SERVICE_ACCOUNT }).auth.user().onCreate(async (user) => {
     const { uid, email, displayName } = user;
     try {
         await admin.firestore().collection("users").doc(uid).set({

@@ -12,7 +12,7 @@
     "lint": "tsc --noEmit",
     "deploy": "npm run build && firebase deploy",
     "deploy:hosting": "npm run build && firebase deploy --only hosting",
-    "deploy:run": "gcloud builds submit --tag gcr.io/agape-sovereign/app --service-account projects/agape-sovereign/serviceAccounts/firebase-app-hosting-compute@agape-sovereign.iam.gserviceaccount.com --logging=cloud-logging-only && gcloud run deploy agape-sovereign --image gcr.io/agape-sovereign/app --platform managed --region us-central1 --allow-unauthenticated"
+    "deploy:run": "gcloud builds submit --config cloudbuild.yaml && gcloud run deploy agape-sovereign --image gcr.io/agape-sovereign/app --service-account firebase-adminsdk-fbsvc@agape-sovereign.iam.gserviceaccount.com --platform managed --region us-central1 --allow-unauthenticated"
   },
   "dependencies": {
     "@firebase/eslint-plugin-security-rules": "^0.0.2",
