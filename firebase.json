@@ -1,6 +1,20 @@
 {
+<<<<<<< HEAD
   "hosting": {
     "public": "dist",
+=======
+  "firestore": {
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  },
+  "functions": {
+    "source": "functions",
+    "codebase": "default",
+    "runtime": "nodejs20"
+  },
+  "hosting": {
+    "public": ".next/standalone/.next/static",
+>>>>>>> 3c37162 (feat: Implement Architect AI Cloud Functions for DIFF scanning and reporting)
     "ignore": [
       "firebase.json",
       "**/.*",
@@ -8,6 +22,7 @@
     ],
     "rewrites": [
       {
+<<<<<<< HEAD
         "source": "/api/**",
         "run": {
           "serviceId": "agape-sovereign",
@@ -46,10 +61,66 @@
       "buildServiceAccount": "projects/agape-sovereign/serviceAccounts/firebase-adminsdk-fbsvc@agape-sovereign.iam.gserviceaccount.com"
     }
   ],
+=======
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ],
+    "headers": [
+      {
+        "source": "**/*.@(js|css|woff2)",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "public, max-age=31536000, immutable"
+          }
+        ]
+      },
+      {
+        "source": "/api/**",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "no-cache, no-store, must-revalidate"
+          }
+        ]
+      },
+      {
+        "source": "**",
+        "headers": [
+          {
+            "key": "X-Content-Type-Options",
+            "value": "nosniff"
+          },
+          {
+            "key": "X-Frame-Options",
+            "value": "DENY"
+          },
+          {
+            "key": "X-XSS-Protection",
+            "value": "1; mode=block"
+          },
+          {
+            "key": "Referrer-Policy",
+            "value": "strict-origin-when-cross-origin"
+          },
+          {
+            "key": "Permissions-Policy",
+            "value": "geolocation=(), microphone=(), camera=()"
+          }
+        ]
+      }
+    ]
+  },
+  "storage": {
+    "rules": "storage.rules"
+  },
+>>>>>>> 3c37162 (feat: Implement Architect AI Cloud Functions for DIFF scanning and reporting)
   "emulators": {
     "auth": {
       "port": 9099
     },
+<<<<<<< HEAD
     "functions": {
       "port": 5001
     },
@@ -64,6 +135,26 @@
     },
     "ui": {
       "enabled": true
+=======
+    "firestore": {
+      "port": 8080
+    },
+    "storage": {
+      "port": 9199
+    },
+    "functions": {
+      "port": 5001
+    },
+    "hosting": {
+      "port": 5000
+    },
+    "pubsub": {
+      "port": 8085
+    },
+    "ui": {
+      "enabled": true,
+      "port": 4000
+>>>>>>> 3c37162 (feat: Implement Architect AI Cloud Functions for DIFF scanning and reporting)
     },
     "singleProjectMode": true
   }

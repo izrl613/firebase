@@ -1,4 +1,5 @@
 {
+<<<<<<< HEAD
   "name": "functions",
   "scripts": {
     "lint": "eslint --ext .js,.ts .",
@@ -7,11 +8,29 @@
     "serve": "npm run build && firebase emulators:start --only functions",
     "shell": "npm run build && firebase functions:shell",
     "start": "npm run shell",
+=======
+  "name": "architect-ai-functions",
+  "version": "1.0.0",
+  "description": "Architect AI - Cloud Functions for Agape Sovereign Enclave",
+  "main": "index.js",
+  "dependencies": {
+    "firebase-admin": "^12.0.0",
+    "firebase-functions": "^5.0.1",
+    "pdfkit": "^0.13.0",
+    "crypto": "^1.0.1"
+  },
+  "devDependencies": {
+    "firebase-functions-test": "^3.1.0"
+  },
+  "scripts": {
+    "test": "firebase emulate:functions",
+>>>>>>> 3c37162 (feat: Implement Architect AI Cloud Functions for DIFF scanning and reporting)
     "deploy": "firebase deploy --only functions",
     "logs": "firebase functions:log"
   },
   "engines": {
     "node": "20"
+<<<<<<< HEAD
   },
   "main": "lib/index.js",
   "dependencies": {
@@ -28,4 +47,7 @@
     "typescript": "^5.2.2"
   },
   "private": true
+=======
+  }
+>>>>>>> 3c37162 (feat: Implement Architect AI Cloud Functions for DIFF scanning and reporting)
 }

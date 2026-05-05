@@ -1,5 +1,11 @@
 {
   "projects": {
     "default": "agape-sovereign"
+<<<<<<< HEAD
   }
+=======
+  },
+  "targets": {},
+  "etags": {}
+>>>>>>> 3c37162 (feat: Implement Architect AI Cloud Functions for DIFF scanning and reporting)
 }
