@@ -1,5 +1,5 @@
 # Build stage
-FROM node:20-slim AS builder
+FROM node:20-alpine AS builder
 
 WORKDIR /app
 
@@ -7,7 +7,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install dependencies
-RUN npm install
+RUN npm ci
 
 # Copy source files
 COPY . .
@@ -16,16 +16,19 @@ COPY . .
 RUN npm run build
 
 # Production stage
-FROM node:20-slim
+FROM node:20-alpine
 
 WORKDIR /app
+
+ENV NODE_ENV=production
+ENV PORT=8080
 
 # Copy built files and production dependencies
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/package*.json ./
 
 # Install only production dependencies
-RUN npm install --omit=dev
+RUN npm ci --only=production
 
 # Expose the port (Cloud Run sets PORT env var)
 EXPOSE 8080
