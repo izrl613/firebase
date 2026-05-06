@@ -1,48 +1,7 @@
 {
-<<<<<<< HEAD
-  "hosting": {
-    "public": "dist",
-=======
   "firestore": {
     "rules": "firestore.rules",
     "indexes": "firestore.indexes.json"
-  },
-  "functions": {
-    "source": "functions",
-    "codebase": "default",
-    "runtime": "nodejs20"
-  },
-  "hosting": {
-    "public": ".next/standalone/.next/static",
->>>>>>> 3c37162 (feat: Implement Architect AI Cloud Functions for DIFF scanning and reporting)
-    "ignore": [
-      "firebase.json",
-      "**/.*",
-      "**/node_modules/**"
-    ],
-    "rewrites": [
-      {
-<<<<<<< HEAD
-        "source": "/api/**",
-        "run": {
-          "serviceId": "agape-sovereign",
-          "region": "us-central1"
-        }
-      },
-      {
-        "source": "**",
-        "destination": "/index.html"
-      }
-    ]
-  },
-  "firestore": {
-    "rules": "firestore.rules"
-  },
-  "storage": {
-    "rules": "storage.rules"
-  },
-  "database": {
-    "rules": "database.rules.json"
   },
   "functions": [
     {
@@ -61,7 +20,24 @@
       "buildServiceAccount": "projects/agape-sovereign/serviceAccounts/firebase-adminsdk-fbsvc@agape-sovereign.iam.gserviceaccount.com"
     }
   ],
-=======
+  "hosting": {
+    "public": "dist",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**",
+      ".next/**",
+      "out/**"
+    ],
+    "rewrites": [
+      {
+        "source": "/api/**",
+        "run": {
+          "serviceId": "agape-sovereign",
+          "region": "us-central1"
+        }
+      },
+      {
         "source": "**",
         "destination": "/index.html"
       }
@@ -115,12 +91,13 @@
   "storage": {
     "rules": "storage.rules"
   },
->>>>>>> 3c37162 (feat: Implement Architect AI Cloud Functions for DIFF scanning and reporting)
+  "database": {
+    "rules": "database.rules.json"
+  },
   "emulators": {
     "auth": {
       "port": 9099
     },
-<<<<<<< HEAD
     "functions": {
       "port": 5001
     },
@@ -132,21 +109,6 @@
     },
     "storage": {
       "port": 9199
-    },
-    "ui": {
-      "enabled": true
-=======
-    "firestore": {
-      "port": 8080
-    },
-    "storage": {
-      "port": 9199
-    },
-    "functions": {
-      "port": 5001
-    },
-    "hosting": {
-      "port": 5000
     },
     "pubsub": {
       "port": 8085
@@ -154,7 +116,6 @@
     "ui": {
       "enabled": true,
       "port": 4000
->>>>>>> 3c37162 (feat: Implement Architect AI Cloud Functions for DIFF scanning and reporting)
     },
     "singleProjectMode": true
   }

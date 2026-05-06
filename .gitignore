@@ -6,3 +6,8 @@ coverage/
 *.log
 .env*
 !.env.example
+.next/
+out/
+firebase-debug.log
+firebase-debug.*.log
+.firebase/
