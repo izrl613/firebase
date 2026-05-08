@@ -1,35 +1,69 @@
 {
-  "firestore": {
-    "rules": "firestore.rules",
-    "indexes": "firestore.indexes.json"
+  "hosting": {
+    "public": "dist",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "/api/**",
+        "run": {
+          "serviceId": "agape-sovereign",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ]
   },
-  "functions": {
-    "source": "functions",
-    "codebase": "default",
-    "runtime": "nodejs20"
+  "firestore": {
+    "rules": "firestore.rules"
   },
   "storage": {
     "rules": "storage.rules"
   },
+  "database": {
+    "rules": "database.rules.json"
+  },
+  "functions": [
+    {
+      "source": "functions",
+      "codebase": "default",
+      "ignore": [
+        "node_modules",
+        ".git",
+        "firebase-debug.log",
+        "firebase-debug.*.log",
+        "*.local"
+      ],
+      "predeploy": [
+        "npm --prefix \"$RESOURCE_DIR\" run build"
+      ],
+      "buildServiceAccount": "projects/agape-sovereign/serviceAccounts/firebase-adminsdk-fbsvc@agape-sovereign.iam.gserviceaccount.com"
+    }
+  ],
   "emulators": {
     "auth": {
       "port": 9099
     },
+    "functions": {
+      "port": 5001
+    },
     "firestore": {
       "port": 8080
+    },
+    "hosting": {
+      "port": 5000
     },
     "storage": {
       "port": 9199
     },
-    "functions": {
-      "port": 5001
-    },
-    "pubsub": {
-      "port": 8085
-    },
     "ui": {
-      "enabled": true,
-      "port": 4000
+      "enabled": true
     },
     "singleProjectMode": true
   }
