@@ -21,7 +21,10 @@
     ]
   },
   "firestore": {
-    "rules": "firestore.rules"
+    "database": "agape-sovereign",
+    "location": "nam7",
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
   },
   "storage": {
     "rules": "storage.rules"
@@ -41,11 +44,35 @@
         "*.local"
       ],
       "predeploy": [
+        "npm --prefix \"$RESOURCE_DIR\" run lint",
         "npm --prefix \"$RESOURCE_DIR\" run build"
       ],
-      "buildServiceAccount": "projects/agape-sovereign/serviceAccounts/firebase-adminsdk-fbsvc@agape-sovereign.iam.gserviceaccount.com"
+      "buildServiceAccount": "projects/agape-sovereign/serviceAccounts/firebase-adminsdk-fbsvc@agape-sovereign.iam.gserviceaccount.com",
+      "disallowLegacyRuntimeConfig": true
     }
   ],
+  "apphosting": {
+    "backendId": "firebase",
+    "rootDir": "/",
+    "ignore": [
+      "node_modules",
+      ".git",
+      "firebase-debug.log",
+      "firebase-debug.*.log",
+      "functions"
+    ],
+    "alwaysDeployFromSource": true
+  },
+  "dataconnect": {
+    "source": "dataconnect"
+  },
+  "remoteconfig": {
+    "template": "remoteconfig.template.json"
+  },
+  "extensions": {},
+  "auth": {
+    "providers": {}
+  },
   "emulators": {
     "auth": {
       "port": 9099
@@ -61,6 +88,26 @@
     },
     "storage": {
       "port": 9199
+    },
+    "database": {
+      "port": 9000
+    },
+    "pubsub": {
+      "port": 8085
+    },
+    "eventarc": {
+      "port": 9299
+    },
+    "tasks": {
+      "port": 9499
+    },
+    "dataconnect": {
+      "dataDir": "dataconnect/.dataconnect/pgliteData",
+      "port": 9399
+    },
+    "apphosting": {
+      "port": 5002,
+      "rootDirectory": "./"
     },
     "ui": {
       "enabled": true
