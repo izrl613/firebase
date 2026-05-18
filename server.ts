@@ -10,6 +10,8 @@ import {
 } from "@simplewebauthn/server";
 import admin from "firebase-admin";
 import cookieParser from "cookie-parser";
+import { GoogleGenAI } from "@google/genai";
+import { ARCHITECT_SYSTEM_PROMPT } from "./src/architectPrompt";
 
 // Initialize Firebase Admin
 if (!admin.apps.length) {
@@ -32,6 +34,37 @@ async function startServer() {
   // API routes
   app.get("/api/health", (req, res) => {
     res.json({ status: "ok", timestamp: new Date().toISOString() });
+  });
+
+  // Architect AI Chat Endpoint
+  app.post("/api/architect", async (req, res) => {
+    try {
+      const { message, history = [] } = req.body;
+      const apiKey = process.env.GEMINI_API_KEY;
+      
+      if (!apiKey) {
+        return res.status(500).json({ error: "GEMINI_API_KEY is not set" });
+      }
+
+      // Using gemini-2.5-flash for maximum cost efficiency and speed.
+      const ai = new GoogleGenAI({ apiKey });
+      
+      const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: [
+          ...history,
+          message
+        ],
+        config: {
+          systemInstruction: ARCHITECT_SYSTEM_PROMPT,
+        }
+      });
+
+      res.json({ reply: response.text });
+    } catch (error) {
+      console.error("Architect AI Error:", error);
+      res.status(500).json({ error: "Failed to generate AI response" });
+    }
   });
 
   // WebAuthn Registration Options
