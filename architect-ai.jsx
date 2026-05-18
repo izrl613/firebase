@@ -1,5 +1,7 @@
-import { useState, useEffect, useRef, useCallback } from "react";
-
+import { useState, useEffect, useRef } from "react";
+import { auth, db, loginWithGoogle } from "./src/firebase";
+import { onAuthStateChanged } from "firebase/auth";
+import { doc, onSnapshot, setDoc } from "firebase/firestore";
 // ============================================================
 // ARCHITECT AI — AGAPE SOVEREIGN ENCLAVE 2026
 // Digital Identity Federated Footprint (DIFF) Intelligence
@@ -216,41 +218,56 @@ const StatusBadge = ({ type }) => {
   );
 };
 
-// ─── DIFF Module Data (16-Layer Identity Vectors) ─────────────
-const DIFF_MODULES = [
-  { id: "email", icon: "✉", label: "Email Breach Scanner", vector: "V-01", nuked: 3, knoxed: 12, monitored: 2, severity: 72 },
-  { id: "social", icon: "◈", label: "Social Media Footprint", vector: "V-02", nuked: 7, knoxed: 8, monitored: 5, severity: 61 },
-  { id: "device", icon: "⬡", label: "Device File Scan", vector: "V-03", nuked: 1, knoxed: 24, monitored: 3, severity: 88 },
-  { id: "mobile", icon: "◻", label: "Mobile Security Layer", vector: "V-04", nuked: 0, knoxed: 18, monitored: 1, severity: 95 },
-  { id: "deepweb", icon: "◉", label: "Deep Web Exposure", vector: "V-05", nuked: 5, knoxed: 3, monitored: 8, severity: 42 },
-  { id: "broker", icon: "⧫", label: "Data Broker Removal", vector: "V-06", nuked: 12, knoxed: 4, monitored: 6, severity: 38 },
-  { id: "password", icon: "⬟", label: "Password Vault Analysis", vector: "V-07", nuked: 2, knoxed: 31, monitored: 0, severity: 91 },
-  { id: "location", icon: "◎", label: "Location Data Footprint", vector: "V-08", nuked: 4, knoxed: 9, monitored: 7, severity: 55 },
-  { id: "browser", icon: "◯", label: "Browser & Cookie Tracker", vector: "V-09", nuked: 8, knoxed: 6, monitored: 11, severity: 49 },
-  { id: "financial", icon: "⬡", label: "Financial Identity Exposure", vector: "V-10", nuked: 1, knoxed: 15, monitored: 2, severity: 87 },
-  { id: "medical", icon: "⊕", label: "Medical Data Footprint", vector: "V-11", nuked: 0, knoxed: 7, monitored: 1, severity: 93 },
-  { id: "biometric", icon: "⊛", label: "Voice & Biometric Data", vector: "V-12", nuked: 2, knoxed: 11, monitored: 4, severity: 79 },
-  { id: "iot", icon: "⊡", label: "IoT & Smart Device Scan", vector: "V-13", nuked: 3, knoxed: 8, monitored: 5, severity: 66 },
-  { id: "cloud", icon: "⊞", label: "Cloud Storage Exposure", vector: "V-14", nuked: 1, knoxed: 19, monitored: 2, severity: 85 },
-  { id: "darkweb", icon: "◈", label: "Dark Web Monitoring", vector: "V-15", nuked: 6, knoxed: 2, monitored: 9, severity: 34 },
-  { id: "behavioral", icon: "⊟", label: "Behavioral Profile Analysis", vector: "V-16", nuked: 4, knoxed: 13, monitored: 6, severity: 71 },
+// ─── BASE DIFF SCHEMA (Definitions only, no mock data) ─────────────
+const BASE_MODULES = [
+  { id: "email", icon: "✉", label: "Email Breach Scanner", vector: "V-01" },
+  { id: "social", icon: "◈", label: "Social Media Footprint", vector: "V-02" },
+  { id: "device", icon: "⬡", label: "Device File Scan", vector: "V-03" },
+  { id: "mobile", icon: "◻", label: "Mobile Security Layer", vector: "V-04" },
+  { id: "deepweb", icon: "◉", label: "Deep Web Exposure", vector: "V-05" },
+  { id: "broker", icon: "⧫", label: "Data Broker Removal", vector: "V-06" },
+  { id: "password", icon: "⬟", label: "Password Vault Analysis", vector: "V-07" },
+  { id: "location", icon: "◎", label: "Location Data Footprint", vector: "V-08" },
+  { id: "browser", icon: "◯", label: "Browser & Cookie Tracker", vector: "V-09" },
+  { id: "financial", icon: "⬡", label: "Financial Identity Exposure", vector: "V-10" },
+  { id: "medical", icon: "⊕", label: "Medical Data Footprint", vector: "V-11" },
+  { id: "biometric", icon: "⊛", label: "Voice & Biometric Data", vector: "V-12" },
+  { id: "iot", icon: "⊡", label: "IoT & Smart Device Scan", vector: "V-13" },
+  { id: "cloud", icon: "⊞", label: "Cloud Storage Exposure", vector: "V-14" },
+  { id: "darkweb", icon: "◈", label: "Dark Web Monitoring", vector: "V-15" },
+  { id: "behavioral", icon: "⊟", label: "Behavioral Profile Analysis", vector: "V-16" },
 ];
+
+const DEFAULT_MODULE_DATA = BASE_MODULES.map(m => ({
+  ...m, nuked: 0, knoxed: 0, monitored: 0, severity: 100, findings: []
+}));
 
 const ADMIN_EMAILS = ["idin@agape.nyc", "agape@sovereign.nyc"];
 
 // ─── AUTH SCREEN ──────────────────────────────────────────────
-const AuthScreen = ({ onAuth }) => {
-  const [step, setStep] = useState("landing"); // landing | passkey | creating
+const AuthScreen = () => {
+  const [step, setStep] = useState("landing");
   const [scanning, setScanning] = useState(false);
 
-  const handleProvider = (provider) => {
-    setScanning(true);
-    setTimeout(() => { setScanning(false); setStep("passkey"); }, 2000);
+  const handleProvider = async (provider) => {
+    if (provider === "google") {
+      try {
+        setScanning(true);
+        await loginWithGoogle();
+        // The auth state listener in App will handle the user object automatically
+      } catch (err) {
+        console.error("Auth failed", err);
+        setScanning(false);
+      }
+    } else {
+      setScanning(true);
+      setTimeout(() => { setScanning(false); setStep("passkey"); }, 2000);
+    }
   };
 
   const handlePasskey = () => {
     setStep("creating");
-    setTimeout(() => onAuth({ name: "Sovereign User", email: "user@agape.nyc", provider: "google" }), 2500);
+    // Placeholder for real Passkey integration
   };
 
   return (
@@ -360,15 +377,15 @@ const SovereignScore = ({ score }) => {
 };
 
 // ─── Left Navigation ──────────────────────────────────────────
-const LeftNav = ({ activeModule, setActiveModule, activeSection, setActiveSection }) => {
+const LeftNav = ({ diffModules, activeModule, setActiveModule, activeSection, setActiveSection }) => {
   const sections = [
     { id: "dashboard", icon: "⬡", label: "DASHBOARD" },
     { id: "architect", icon: "◈", label: "ARCHITECT AI" },
     { id: "report", icon: "⊟", label: "DIFF REPORT" },
   ];
 
-  const totalNuked = DIFF_MODULES.reduce((s, m) => s + m.nuked, 0);
-  const totalKnoxed = DIFF_MODULES.reduce((s, m) => s + m.knoxed, 0);
+  const totalNuked = diffModules.reduce((s, m) => s + m.nuked, 0);
+  const totalKnoxed = diffModules.reduce((s, m) => s + m.knoxed, 0);
 
   return (
     <div style={{ width: 260, height: "100vh", background: "rgba(6,13,31,0.97)", borderRight: "1px solid rgba(0,212,255,0.12)", display: "flex", flexDirection: "column", overflow: "hidden", position: "relative" }}>
@@ -423,7 +440,7 @@ const LeftNav = ({ activeModule, setActiveModule, activeSection, setActiveSectio
 
       {/* Scrollable modules */}
       <div style={{ flex: 1, overflowY: "auto", padding: "0 8px" }}>
-        {DIFF_MODULES.map((m) => {
+        {diffModules.map((m) => {
           const isActive = activeModule === m.id;
           const sev = m.severity;
           const sevColor = sev > 80 ? NEON.blue : sev > 60 ? NEON.orange : NEON.magenta;
@@ -501,11 +518,11 @@ const TopHeader = ({ user, onAdmin, onProfile }) => {
 };
 
 // ─── Dashboard View ───────────────────────────────────────────
-const DashboardView = ({ onModuleClick }) => {
-  const sovereignScore = 71;
-  const totalExposures = DIFF_MODULES.reduce((s, m) => s + m.nuked + m.monitored, 0);
-  const totalSecured = DIFF_MODULES.reduce((s, m) => s + m.knoxed, 0);
-  const criticalModules = DIFF_MODULES.filter(m => m.severity < 60);
+const DashboardView = ({ diffModules, onModuleClick }) => {
+  const sovereignScore = Math.round(diffModules.reduce((s, m) => s + m.severity, 0) / (diffModules.length || 1));
+  const totalExposures = diffModules.reduce((s, m) => s + m.nuked + m.monitored, 0);
+  const totalSecured = diffModules.reduce((s, m) => s + m.knoxed, 0);
+  const criticalModules = diffModules.filter(m => m.severity < 60);
 
   return (
     <div style={{ padding: "24px", overflowY: "auto", height: "100%", animation: "fade-in 0.4s ease" }}>
@@ -542,7 +559,7 @@ const DashboardView = ({ onModuleClick }) => {
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10 }}>
-        {DIFF_MODULES.map((m) => {
+        {diffModules.map((m) => {
           const sev = m.severity;
           const sevColor = sev > 80 ? NEON.blue : sev > 60 ? NEON.orange : NEON.magenta;
           return (
@@ -573,14 +590,14 @@ const DashboardView = ({ onModuleClick }) => {
 };
 
 // ─── Module Detail View ───────────────────────────────────────
-const ModuleDetailView = ({ moduleId }) => {
+const ModuleDetailView = ({ diffModules, moduleId }) => {
   const [isScanning, setIsScanning] = useState(false);
   const [scanProgress, setScanProgress] = useState(0);
   const [currentStage, setCurrentStage] = useState("");
   const [completedStages, setCompletedStages] = useState([]);
   const [activeStageIndex, setActiveStageIndex] = useState(-1);
 
-  const m = DIFF_MODULES.find(x => x.id === moduleId);
+  const m = diffModules.find(x => x.id === moduleId);
   if (!m) return null;
   const sev = m.severity;
   const sevColor = sev > 80 ? NEON.blue : sev > 60 ? NEON.orange : NEON.magenta;
@@ -762,9 +779,11 @@ const ModuleDetailView = ({ moduleId }) => {
 };
 
 // ─── Architect AI Chat ────────────────────────────────────────
-const ArchitectAIView = () => {
+const ArchitectAIView = ({ user, diffModules }) => {
+  const initialGreeting = `Greetings, ${user?.displayName || "Sovereign"}. I am Architect AI — your real-time Digital Identity Federated Footprint intelligence engine.\n\nI have analyzed your 16-layer identity vector profile. Your Sovereign Score is currently **${Math.round(diffModules.reduce((s, m) => s + m.severity, 0) / (diffModules.length || 1))}/100**.\n\n🔥 **${diffModules.reduce((s, m) => s + m.nuked, 0)} NUKED** exposures identified across data brokers and breach databases.\n🛡️ **${diffModules.reduce((s, m) => s + m.knoxed, 0)} KNOXED** vectors hardened and secured.\n\nWhat aspect of your digital sovereignty would you like to reclaim today?`;
+
   const [messages, setMessages] = useState([
-    { role: "assistant", content: "Greetings, Sovereign. I am Architect AI — your real-time Digital Identity Federated Footprint intelligence engine.\n\nI have analyzed your 16-layer identity vector profile. Your Sovereign Score is currently **71/100**.\n\n🔥 **59 NUKED** exposures identified across data brokers and breach databases.\n🛡️ **207 KNOXED** vectors hardened and secured.\n\nWhat aspect of your digital sovereignty would you like to reclaim today?" }
+    { role: "assistant", content: initialGreeting }
   ]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -779,38 +798,30 @@ const ArchitectAIView = () => {
     setMessages(prev => [...prev, { role: "user", content: userMsg }]);
     setLoading(true);
 
-    const systemPrompt = `You are Architect AI, the core intelligence engine of the Agape Sovereign Enclave 2026 — a cutting-edge Digital Identity Federated Footprint (DIFF) security and privacy platform.
-
-Your persona: Calm, precise, futuristic, deeply knowledgeable about security and privacy. You speak like a sovereign intelligence advisor — never condescending, always empowering.
-
-Your purpose: Help users understand, reclaim, and fortify their digital identity across 16 identity vectors. You operate under ECRA 2026, GDPR, CCPA, and global privacy standards.
-
-Core concepts you operate with:
-- NUKED: Exposures identified that need removal/action (data brokers, breaches, leaks)
-- KNOXED: Assets secured, encrypted, hardened, verified protected
-- DIFF: Digital Identity Federated Footprint — the complete map of a user's online presence
-- Sovereign Score: A 0-100 metric measuring digital privacy posture
-
-16 Identity Vectors: Email Breach Scanner, Social Media Footprint, Device File Scan, Mobile Security Layer, Deep Web Exposure, Data Broker Removal, Password Vault Analysis, Location Data Footprint, Browser & Cookie Tracker, Financial Identity Exposure, Medical Data Footprint, Voice & Biometric Data, IoT & Smart Device Scan, Cloud Storage Exposure, Dark Web Monitoring, Behavioral Profile Analysis.
-
-Always be actionable. Reference ECRA 2026, GDPR, CCPA where relevant. Use markdown for formatting. Keep responses focused and empowering. Never alarm unnecessarily — always provide a path forward.`;
-
     try {
-      const history = messages.map(m => ({ role: m.role, content: m.content }));
-      const response = await fetch("https://api.anthropic.com/v1/messages", {
+      // Map history to the format expected by our backend API (Gemini uses 'model' instead of 'assistant')
+      const history = messages.map(m => ({
+        role: m.role === "assistant" ? "model" : "user",
+        parts: [{ text: m.content }]
+      }));
+      
+      const response = await fetch("/api/architect", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          model: "claude-sonnet-4-20250514",
-          max_tokens: 1000,
-          system: systemPrompt,
-          messages: [...history, { role: "user", content: userMsg }]
+          message: userMsg,
+          history: history
         })
       });
       const data = await response.json();
-      const text = data.content?.map(c => c.text || "").join("") || "Unable to process request.";
-      setMessages(prev => [...prev, { role: "assistant", content: text }]);
-    } catch {
+      
+      if (data.error) {
+        throw new Error(data.error);
+      }
+      
+      setMessages(prev => [...prev, { role: "assistant", content: data.reply || "Unable to process request." }]);
+    } catch (error) {
+      console.error("Chat error:", error);
       setMessages(prev => [...prev, { role: "assistant", content: "⚠️ Secure channel temporarily interrupted. Reconnecting..." }]);
     }
     setLoading(false);
@@ -896,12 +907,12 @@ Always be actionable. Reference ECRA 2026, GDPR, CCPA where relevant. Use markdo
 };
 
 // ─── PDF Report View ──────────────────────────────────────────
-const ReportView = () => {
+const ReportView = ({ diffModules }) => {
   const [generating, setGenerating] = useState(false);
   const [generated, setGenerated] = useState(false);
-  const totalNuked = DIFF_MODULES.reduce((s, m) => s + m.nuked, 0);
-  const totalKnoxed = DIFF_MODULES.reduce((s, m) => s + m.knoxed, 0);
-  const avgScore = Math.round(DIFF_MODULES.reduce((s, m) => s + m.severity, 0) / DIFF_MODULES.length);
+  const totalNuked = diffModules.reduce((s, m) => s + m.nuked, 0);
+  const totalKnoxed = diffModules.reduce((s, m) => s + m.knoxed, 0);
+  const avgScore = Math.round(diffModules.reduce((s, m) => s + m.severity, 0) / (diffModules.length || 1));
 
   const handleGenerate = () => {
     setGenerating(true);
@@ -957,7 +968,7 @@ const ReportView = () => {
         <NeonText color={NEON.orange} size="0.72rem">VECTOR-BY-VECTOR BREAKDOWN</NeonText>
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 24 }}>
-        {DIFF_MODULES.slice(0, 8).map(m => {
+        {diffModules.slice(0, 8).map(m => {
           const sev = m.severity;
           const sevColor = sev > 80 ? NEON.blue : sev > 60 ? NEON.orange : NEON.magenta;
           return (
@@ -1145,25 +1156,49 @@ const ProfilePanel = ({ user, onClose }) => {
 // ─── MAIN APP ─────────────────────────────────────────────────
 export default function App() {
   const [user, setUser] = useState(null);
+  const [diffModules, setDiffModules] = useState(DEFAULT_MODULE_DATA);
   const [activeSection, setActiveSection] = useState("dashboard");
   const [activeModule, setActiveModule] = useState(null);
   const [showAdmin, setShowAdmin] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
 
+  // Real-time listener for Auth and Firestore
+  useEffect(() => {
+    const unsubscribeAuth = onAuthStateChanged(auth, async (authUser) => {
+      setUser(authUser);
+      if (authUser) {
+        const profileRef = doc(db, "users", authUser.uid, "diff", "profile");
+        const unsubscribeDb = onSnapshot(profileRef, (docSnap) => {
+          if (docSnap.exists() && docSnap.data().modules) {
+            setDiffModules(docSnap.data().modules);
+          } else {
+            // Initialize fresh modules for a new user if none exist
+            setDoc(profileRef, { modules: DEFAULT_MODULE_DATA, initializedAt: new Date().toISOString() });
+            setDiffModules(DEFAULT_MODULE_DATA);
+          }
+        });
+        return () => unsubscribeDb();
+      } else {
+        setDiffModules(DEFAULT_MODULE_DATA);
+      }
+    });
+    return () => unsubscribeAuth();
+  }, []);
+
   if (!user) return (
     <>
       <GlobalStyle />
-      <AuthScreen onAuth={setUser} />
+      <AuthScreen />
     </>
   );
 
   const handleModuleClick = (id) => { setActiveModule(id); setActiveSection("modules"); };
 
   const renderMain = () => {
-    if (activeSection === "architect") return <ArchitectAIView />;
-    if (activeSection === "report") return <ReportView />;
-    if (activeSection === "modules" && activeModule) return <ModuleDetailView moduleId={activeModule} />;
-    return <DashboardView onModuleClick={handleModuleClick} />;
+    if (activeSection === "architect") return <ArchitectAIView user={user} diffModules={diffModules} />;
+    if (activeSection === "report") return <ReportView diffModules={diffModules} />;
+    if (activeSection === "modules" && activeModule) return <ModuleDetailView diffModules={diffModules} moduleId={activeModule} />;
+    return <DashboardView diffModules={diffModules} onModuleClick={handleModuleClick} />;
   };
 
   return (
@@ -1177,7 +1212,7 @@ export default function App() {
         <TopHeader user={user} onAdmin={() => setShowAdmin(true)} onProfile={() => setShowProfile(true)} />
 
         <div style={{ flex: 1, display: "flex", overflow: "hidden" }}>
-          <LeftNav activeModule={activeModule} setActiveModule={setActiveModule} activeSection={activeSection} setActiveSection={setActiveSection} />
+          <LeftNav diffModules={diffModules} activeModule={activeModule} setActiveModule={setActiveModule} activeSection={activeSection} setActiveSection={setActiveSection} />
 
           {/* Main content */}
           <div style={{ flex: 1, overflow: "hidden", position: "relative" }}>
@@ -1193,7 +1228,7 @@ export default function App() {
         </div>
 
         {/* Bottom border gradient */}
-        <div style={{ height: 2, background: GRADIENT_BORDER, backgroundSize: "200% 100%", animation: "rotate-gradient 3s linear infinite reverse", flexShrink: 0 }} />
+        <div style={{ height: 2, background: GRADIENT_BORDER, backgroundSize: "200% 100%", animation: "rotate-gradient 3s linear reverse infinite", flexShrink: 0 }} />
       </div>
 
       {showAdmin && <AdminPortal onClose={() => setShowAdmin(false)} />}
