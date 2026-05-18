@@ -1,59 +1,48 @@
-type User @table {
-  sovereignID: String!
-  createdAt: Timestamp!
-  publicKey: String
-  profileData: String
-}
+# Refined SQL Connect Schema for Agape Sovereign Enclave 2026
 
-type AIModel @table {
+type User @table(key: "uid") {
+  uid: String! @default(expr: "auth.uid")
   name: String!
-  providerName: String!
-  description: String!
-  privacyPolicyURL: String!
-  createdAt: Timestamp!
-  apiEndpoint: String
-  dataRequirements: String
+  email: String! @unique
+  createdAt: Timestamp! @default(expr: "request.time")
+  provider: String
+  sovereignScore: Int @default(value: 100)
+  lastLoginAt: Timestamp @default(expr: "request.time")
 }
 
-type Conversation @table {
+type IdentityVector @table(key: "id") {
+  id: String!
+  name: String!
+  icon: String!
+  description: String
+}
+
+type UserVectorStatus @table(key: ["user", "identityVector"]) {
   user: User!
-  aiModel: AIModel!
-  conversationID: UUID!
-  createdAt: Timestamp!
-  updatedAt: Timestamp!
-  topic: String
-  summary: String
+  identityVector: IdentityVector!
+  sovereigntyScore: Int! @default(value: 100)
+  nukedCount: Int! @default(value: 0)
+  knoxedCount: Int! @default(value: 0)
+  monitoredCount: Int! @default(value: 0)
+  lastScanAt: Timestamp! @default(expr: "request.time")
+  statusNotes: String
 }
 
-type Message @table {
-  conversation: Conversation!
-  senderUser: User
-  senderAIModel: AIModel
-  messageID: UUID!
-  senderType: String!
-  content: String!
-  timestamp: Timestamp!
-  sentiment: String
-}
-
-type Consent @table {
+type Finding @table {
   user: User!
-  aiModel: AIModel!
-  consentID: UUID!
-  dataType: String!
-  grantedAt: Timestamp!
-  expiresAt: Timestamp
-  dataUsagePurpose: String!
-  revokedAt: Timestamp
+  identityVector: IdentityVector!
+  type: String! # e.g. "NUKED", "KNOXED", "MONITORED"
+  label: String!
+  detail: String!
+  createdAt: Timestamp! @default(expr: "request.time")
+  action: String
+  status: String
 }
 
-type AuditLog @table {
+type MonitoredEmail @table {
   user: User!
-  aiModel: AIModel!
-  consent: Consent
-  logID: UUID!
-  actionType: String!
-  timestamp: Timestamp!
-  dataIdentifier: String!
-  details: String
+  emailAddress: String!
+  status: String! @default(value: "MONITORED")
+  createdAt: Timestamp! @default(expr: "request.time")
+  lastCheckedAt: Timestamp
 }

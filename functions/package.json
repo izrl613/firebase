@@ -16,6 +16,7 @@
   },
   "main": "lib/index.js",
   "dependencies": {
+    "@dataconnect/admin-generated": "file:src/dataconnect-admin-generated",
     "@genkit-ai/firebase": "^1.34.0",
     "@genkit-ai/google-genai": "^1.34.0",
     "express": "^5.2.1",

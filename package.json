@@ -15,6 +15,8 @@
     "deploy:run": "gcloud builds submit --config cloudbuild.yaml && gcloud run deploy agape-sovereign --image gcr.io/agape-sovereign/app --service-account firebase-adminsdk-fbsvc@agape-sovereign.iam.gserviceaccount.com --platform managed --region us-central1 --allow-unauthenticated"
   },
   "dependencies": {
+    "@dataconnect/admin-generated": "file:src/dataconnect-admin-generated",
+    "@dataconnect/generated": "file:src/dataconnect-generated",
     "@firebase/eslint-plugin-security-rules": "^0.0.2",
     "@google/genai": "^1.29.0",
     "@simplewebauthn/browser": "^13.3.0",
